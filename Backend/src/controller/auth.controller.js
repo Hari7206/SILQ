@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import config from "../config/config.js";
 
 
-export const sendTokenResponse = async (user, res) => {
+export const sendTokenResponse = async (user, res , message) => {
 
   const token = jwt.sign(
     { id: user._id },
@@ -22,8 +22,8 @@ export const sendTokenResponse = async (user, res) => {
   });
 
   res.status(200).json({
+    message,
     success: true,
-    message: "Authentication successful",
     token,
     user: {
       id: user._id,
@@ -36,7 +36,7 @@ export const sendTokenResponse = async (user, res) => {
 };
 
 export const register = async (req, res) => {
-  const { fullname, contact, email, password } = req.body;
+  const { fullname, contact, email, password  , isSeller} = req.body;
 
   // Check if user already exists
   const existingUser = await userModel.findOne({
@@ -60,21 +60,9 @@ export const register = async (req, res) => {
     fullname,
     contact,
     email,
-    password
+    password ,
+    role: isSeller ? "seller" : "buyer"
   });
 
-await sendTokenResponse(user, res);
-
-  // Response
-  res.status(201).json({
-    success: true,
-    message: "User registered successfully",
-    user: {
-      id: user._id,
-      fullname: user.fullname,
-      contact: user.contact,
-      email: user.email,
-      role: user.role,
-    },
-  });
+await sendTokenResponse(user, res , "user registered successfully");
 };
