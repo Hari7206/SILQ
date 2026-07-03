@@ -37,7 +37,7 @@ export const sendTokenResponse = async (user, res , message) => {
 
 export const register = async (req, res) => {
   const { fullname, contact, email, password  , isSeller} = req.body;
-
+console.log(req.body);
   // Check if user already exists
   const existingUser = await userModel.findOne({
       $or: [
@@ -65,4 +65,29 @@ export const register = async (req, res) => {
   });
 
 await sendTokenResponse(user, res , "user registered successfully");
+};
+
+
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await userModel.findOne({ email });
+
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email or password",
+    });
+  }
+
+  const isMatch = await user.comparePassword(password);
+
+  if (!isMatch) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email or password",
+    });
+  }
+
+  await sendTokenResponse(user, res, "Login successful");
 };
