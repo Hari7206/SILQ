@@ -12,11 +12,12 @@ const userSchema = new mongoose.Schema(
       maxlength: 30,
     },
 
-    contact: {
-      type: String,
-      required: true,
-      match: /^[0-9]{10,15}$/,
-    },
+   contact: {
+  type: String,
+  required: true,
+  unique: true,
+  match: /^\+[1-9]\d{7,14}$/,
+},
 
     email: {
       type: String,

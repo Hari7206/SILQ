@@ -36,7 +36,7 @@ export const validateRegisterUser = [
     .withMessage("Contact must be valid")
     .isNumeric()
     .withMessage("Contact must contain only numbers")
-    .matches(/^[0-9]{10,15}$/)
+    .matches(/^\+[1-9]\d{7,14}$/)
     .withMessage("Contact must contain only numbers"),
 
   body("email")

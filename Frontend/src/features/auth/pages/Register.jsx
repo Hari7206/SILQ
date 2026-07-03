@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useAuth } from "../hook/useAuth.js";
 import { useNavigate } from "react-router-dom";
+import PhoneInput from "react-phone-number-input";
+import { getCountryCallingCode } from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import "../styles/phone-input.css";
 
 function Register() {
   const { handleRegister } = useAuth();
@@ -25,6 +29,17 @@ function Register() {
     }));
   };
 
+  const handlePhoneChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      contact: value || "",
+    }));
+  };
+
+  const goToLogin = () => {
+    navigate("/login");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -32,7 +47,6 @@ function Register() {
 
     try {
       await handleRegister(formData);
-      // Navigate to login after successful registration
       navigate("/login");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Please try again.");
@@ -41,21 +55,33 @@ function Register() {
     }
   };
 
-  const goToLogin = () => {
-    navigate("/login");
-  };
-
-  const goToHome = () => {
-    navigate("/");
-  };
+  const CustomCountrySelect = ({ value, onChange, options, iconComponent: Icon }) => (
+    <div className="relative flex items-center justify-center gap-2 bg-gray-50 border border-gray-200 px-3 py-3 rounded-lg min-w-[120px] hover:bg-gray-100 transition duration-100">
+      <div className="w-6 flex items-center justify-center scale-110 flex-shrink-0">
+        <Icon country={value} label={value} />
+      </div>
+      <span className="text-sm font-medium text-gray-800 select-none">
+        {value ? `+${getCountryCallingCode(value)}` : ""}
+      </span>
+      <span className="text-gray-400 text-[10px] select-none">▼</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+      >
+        {options.map(({ value: optionValue, label }) => (
+          <option key={optionValue || "INTERNATIONAL"} value={optionValue}>
+            {label} {optionValue ? `(+${getCountryCallingCode(optionValue)})` : ""}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 
   return (
     <div className="relative min-h-screen bg-[#FBF4E8] flex flex-col">
       <div className="flex items-center justify-between px-6 sm:px-10 py-6 relative z-20 flex-shrink-0">
-        <div 
-          className="flex items-center gap-2 cursor-pointer"
-          onClick={goToHome}
-        >
+        <div className="flex items-center gap-2">
           <span className="text-lg">◆</span>
           <span className="font-bold text-2xl tracking-wide">
             <span className="text-[#2B2B2B]">SI</span>
@@ -109,15 +135,15 @@ function Register() {
               className="w-full border border-gray-200 bg-gray-50 p-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C451] focus:border-transparent"
             />
 
-            <input
-              type="text"
-              name="contact"
-              placeholder="Contact number"
-              value={formData.contact}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-200 bg-gray-50 p-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C451] focus:border-transparent"
-            />
+            <div>
+              <PhoneInput
+                defaultCountry="IN"
+                placeholder="Mobile number"
+                value={formData.contact}
+                onChange={handlePhoneChange}
+                countrySelectComponent={CustomCountrySelect}
+              />
+            </div>
 
             <input
               type="email"
