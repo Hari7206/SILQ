@@ -29,7 +29,7 @@ function Login() {
 
     try {
       await handleLogin(formData);
- 
+
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please check your credentials.");
@@ -50,7 +50,7 @@ function Login() {
     <div className="relative min-h-screen bg-[#FBF4E8] flex flex-col">
       {/* Top nav */}
       <div className="flex items-center justify-between px-6 sm:px-10 py-6 relative z-20 flex-shrink-0">
-        <div 
+        <div
           className="flex items-center gap-2 cursor-pointer"
           onClick={goToHome}
         >
@@ -150,6 +150,19 @@ function Login() {
               Register
             </button>
           </p>
+         
+          <button
+            type="button"
+            onClick={() => window.location.href = 'http://localhost:3000/api/auth/google'}
+            className="w-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium p-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-2"
+          >
+            <img
+              src="https://www.google.com/favicon.ico"
+              alt="Google"
+              className="w-5 h-5"
+            />
+            Continue with Google
+          </button>
         </form>
       </div>
 

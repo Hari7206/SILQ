@@ -1,6 +1,6 @@
 import { useDispatch } from "react-redux";
 import { setErr, setLoading, setUser } from "../state/auth.slice";
-import { registerUser } from "../service/auth.api";
+import { registerUser, loginUser, getMe, logoutUser } from "../service/auth.api";
 
 
 
@@ -18,7 +18,7 @@ export const useAuth = () => {
       console.log(error.response?.data);
     }
   }
-  
+
 
   async function handleLogin({ email, password }) {
     try {
@@ -35,8 +35,37 @@ export const useAuth = () => {
     }
   }
 
+  async function checkAuth() {
+    try {
+      dispatch(setLoading(true));
+      const data = await getMe();
+      dispatch(setUser(data.user));
+      return data.user;
+    } catch (error) {
+      dispatch(setUser(null));
+      return null;
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      dispatch(setLoading(true));
+      await logoutUser();
+      dispatch(setUser(null));
+      dispatch(setLoading(false));
+      navigate("/login"); // ← Works now!
+    } catch (error) {
+      dispatch(setLoading(false));
+      dispatch(setErr(error.response?.data?.message || "Logout failed"));
+    }
+  }
+
   return {
     handleRegister,
     handleLogin,
+    checkAuth,
+    handleLogout,
   };
 };
