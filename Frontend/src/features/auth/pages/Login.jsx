@@ -127,9 +127,12 @@ function Login() {
               />
               Remember me
             </label>
-            <a href="#" className="text-sm text-[#F5C451] hover:underline">
-              Forgot password?
-            </a>
+         <button
+  onClick={() => navigate("/forgot-password")}
+  className="text-sm text-[#F5C451] hover:underline cursor-pointer"
+>
+  Forgot password?
+</button>
           </div>
 
           <button

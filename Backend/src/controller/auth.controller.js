@@ -2,6 +2,8 @@ import userModel from "../model/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import config from "../config/config.js";
+import crypto from "crypto";
+import { sendResetPasswordEmail } from "../services/email.service.js";
 
 export const googleAuthResponse = async (user, res) => {
   const token = jwt.sign(
@@ -210,6 +212,147 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message
+    });
+  }
+};
+
+
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide your email address",
+      });
+    }
+
+    // Find user by email
+    const user = await userModel.findOne({ email });
+
+    // Security: Don't reveal if email exists or not
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "If your email exists, you will receive a reset link",
+      });
+    }
+
+    // Check if user is Google OAuth user (no password)
+    if (user.provider === "google") {
+      return res.status(400).json({
+        success: false,
+        message: "You signed up with Google. Please login with Google.",
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // Save token and expiry in database
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + config.RESET_TOKEN_EXPIRY; // 15 minutes
+    await user.save();
+
+    // Send reset email
+    await sendResetPasswordEmail(user.email, user.fullname, resetToken);
+
+    res.status(200).json({
+      success: true,
+      message: "If your email exists, you will receive a reset link",
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong. Please try again.",
+    });
+  }
+};
+
+/**
+ * Reset Password - Set new password using token
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a new password",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    // Find user by token and check if token is not expired
+    const user = await userModel.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }, // Token must be valid and not expired
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset token. Please request a new one.",
+      });
+    }
+
+    // Update user's password
+    user.password = password; // Will be hashed by pre-save hook
+    user.resetPasswordToken = null; // Clear token
+    user.resetPasswordExpires = null; // Clear expiry
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully! You can now login with your new password.",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong. Please try again.",
+    });
+  }
+};
+
+/**
+ * Verify Reset Token - Check if token is valid
+ */
+export const verifyResetToken = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const user = await userModel.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset token",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Token is valid",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
     });
   }
 };

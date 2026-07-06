@@ -5,6 +5,8 @@ import Login from "../features/auth/pages/Login";
 import CompleteProfile from "../features/auth/pages/CompleteProfile"; // ← NEW
 import { useAuth } from "../features/auth/hook/useAuth";
 import { useSelector } from "react-redux";
+import ForgotPassword from "../features/auth/pages/ForgotPassword";
+import ResetPassword from "../features/auth/pages/ResetPassword";
 
 const AppRoutes = () => {
  const { checkAuth, handleLogout } = useAuth();
@@ -42,6 +44,8 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route path="/complete-profile" element={<CompleteProfile />} /> {/* ← NEW */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />           {/* NEW */}
+      <Route path="/reset-password/:token" element={<ResetPassword />} />     {/* NEW */}
     </Routes>
   );
 };

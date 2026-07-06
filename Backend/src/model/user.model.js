@@ -51,6 +51,14 @@ avatar: {
   type: String,
   default: "",
 },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { validateRegisterUser, validateLoginUser } from "../validator/auth.validator.js";
-import { register, login, googleAuthResponse, getMe, logout, updateProfile } from "../controller/auth.controller.js";
+import { register, login, googleAuthResponse, getMe, logout, updateProfile  , forgotPassword , resetPassword , verifyResetToken} from "../controller/auth.controller.js";
 import passport from "passport";
 import jwt from "jsonwebtoken";
 import config from "../config/config.js";
@@ -11,8 +11,7 @@ router.post("/register", validateRegisterUser, register);
 router.post("/login", validateLoginUser, login);
 router.get("/me", getMe);
 router.post("/logout", logout);
-router.put("/update-profile", updateProfile); // ← NEW
-
+router.put("/update-profile", updateProfile);
 router.get(
   "/google",
   passport.authenticate("google", {
@@ -53,5 +52,14 @@ router.get(
     res.redirect("http://localhost:5173/");
   }
 );
+
+
+
+//  Forgot Password Routes
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
+router.get("/verify-reset-token/:token", verifyResetToken);
+
+
 
 export default router;
