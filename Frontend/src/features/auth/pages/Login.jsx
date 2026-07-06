@@ -169,7 +169,6 @@ function Login() {
         </form>
       </div>
 
-      {/* Footer */}
       <div className="text-center text-xs text-gray-400 pb-6 relative z-10 flex-shrink-0">
         Copyright @SILQ 2026 &nbsp;|&nbsp; Privacy Policy &nbsp;|&nbsp; Terms & Conditions
       </div>

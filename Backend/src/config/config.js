@@ -1,8 +1,7 @@
 import dotenv from "dotenv";
 
 dotenv.config();
-console.log("📧 EMAIL_USER:", process.env.EMAIL_USER);
-console.log("📧 EMAIL_PASS:", process.env.EMAIL_PASS ? "✅ SET" : "❌ MISSING");
+
 if (!process.env.MONGODB_URI) {
   throw new Error("MONGODB_URI is not defined")
 }

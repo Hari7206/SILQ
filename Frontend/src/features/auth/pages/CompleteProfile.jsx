@@ -42,10 +42,8 @@ function CompleteProfile() {
         }
       );
 
-      // Update Redux with new user data
       dispatch(setUser(response.data.user));
 
-      // Redirect to home
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update profile");

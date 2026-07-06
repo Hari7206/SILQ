@@ -17,28 +17,25 @@ passport.use(
         let user = await userModel.findOne({ email });
 
         if (user) {
-          // ✅ Existing user - check if profile is complete
           const needsProfileCompletion = !user.contact;
           
-          // Return user with flag
           return done(null, {
             ...user.toObject(),
             needsProfileCompletion
           });
         }
 
-        // ✅ New user - create with minimal data
         user = await userModel.create({
           fullname: profile.displayName,
           email,
           googleId: profile.id,
           avatar: profile.photos?.[0]?.value || null,
           provider: "google",
-          role: "buyer",       // Default role
-          contact: null,       // Will be filled later
+          role: "buyer",       
+          contact: null,      
         });
 
-        // ✅ New user needs profile completion
+    
         return done(null, {
           ...user.toObject(),
           needsProfileCompletion: true
