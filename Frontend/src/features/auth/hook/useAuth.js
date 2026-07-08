@@ -1,37 +1,37 @@
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom"; // ← ADD THIS
 import { setErr, setLoading, setUser } from "../state/auth.slice";
 import { registerUser, loginUser, getMe, logoutUser } from "../service/auth.api";
 
-
-
 export const useAuth = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate(); // ← ADD THIS
 
   async function handleRegister({ email, fullname, contact, password, isSeller = false }) {
     try {
+      dispatch(setLoading(true));
       const data = await registerUser({ email, fullname, contact, password, isSeller });
-
-      console.log(data);
-
       dispatch(setUser(data.user));
+      dispatch(setLoading(false));
+      return data; // ← ADD THIS
     } catch (error) {
-      console.log(error.response?.data);
+      dispatch(setLoading(false));
+      dispatch(setErr(error.response?.data?.message || "Registration failed"));
+      throw error;
     }
   }
 
-
   async function handleLogin({ email, password }) {
     try {
-      const data = await loginUser({
-        email,
-        password,
-      });
-
-      console.log(data);
-
+      dispatch(setLoading(true));
+      const data = await loginUser({ email, password });
       dispatch(setUser(data.user));
+      dispatch(setLoading(false));
+      return data; // ← ADD THIS (RETURN THE DATA)
     } catch (error) {
-      console.log(error.response?.data);
+      dispatch(setLoading(false));
+      dispatch(setErr(error.response?.data?.message || "Login failed"));
+      throw error;
     }
   }
 
@@ -40,12 +40,12 @@ export const useAuth = () => {
       dispatch(setLoading(true));
       const data = await getMe();
       dispatch(setUser(data.user));
+      dispatch(setLoading(false));
       return data.user;
     } catch (error) {
       dispatch(setUser(null));
-      return null;
-    } finally {
       dispatch(setLoading(false));
+      return null;
     }
   }
 
@@ -55,7 +55,7 @@ export const useAuth = () => {
       await logoutUser();
       dispatch(setUser(null));
       dispatch(setLoading(false));
-      navigate("/login"); // ← Works now!
+      navigate("/login");
     } catch (error) {
       dispatch(setLoading(false));
       dispatch(setErr(error.response?.data?.message || "Logout failed"));

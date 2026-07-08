@@ -28,9 +28,13 @@ function Login() {
     setError("");
 
     try {
-      await handleLogin(formData);
-
-      navigate("/dashboard");
+      const data = await handleLogin(formData);
+      // Redirect based on role
+      if (data?.user?.role === "seller") {
+        navigate("/seller/products");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
@@ -127,12 +131,12 @@ function Login() {
               />
               Remember me
             </label>
-         <button
-  onClick={() => navigate("/forgot-password")}
-  className="text-sm text-[#F5C451] hover:underline cursor-pointer"
->
-  Forgot password?
-</button>
+            <button
+              onClick={() => navigate("/forgot-password")}
+              className="text-sm text-[#F5C451] hover:underline cursor-pointer"
+            >
+              Forgot password?
+            </button>
           </div>
 
           <button
