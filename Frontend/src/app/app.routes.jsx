@@ -13,6 +13,8 @@ import CompleteProfile from "../features/auth/pages/CompleteProfile";
 import SellerProducts from "../features/products/pages/SellerProducts";
 import CreateProduct from "../features/products/pages/CreateProduct";
 import EditProduct from "../features/products/pages/EditProduct";
+import PublicProducts from "../features/products/pages/PublicProducts";
+import PublicProductDetail from "../features/products/pages/PublicProductDetail";
 
 const AppRoutes = () => {
   const { checkAuth } = useAuth();
@@ -24,7 +26,9 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<h1>Home</h1>} />
+         <Route path="/" element={<PublicProducts />} />                        
+      <Route path="/products" element={<PublicProducts />} />               
+      <Route path="/products/:id" element={<PublicProductDetail />} /> 
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
