@@ -19,10 +19,36 @@ const EditProduct = () => {
     return () => resetProductState();
   }, [id]);
 
-  const handleSubmit = async (formData) => {
-    await updateExistingProduct(id, formData);
-    navigate("/seller/products");
-  };
+const handleSubmit = async (formData) => {
+  // Convert FormData to JSON object
+  const jsonData = {};
+  
+  // Get all form fields except images
+  for (const [key, value] of formData.entries()) {
+    if (key === "images" || key.startsWith("altTexts")) continue;
+    
+    if (key === "availableSizes") {
+      jsonData[key] = JSON.parse(value);
+    } else if (key === "colors") {
+      jsonData[key] = value ? JSON.parse(value) : [];
+    } else if (key === "occasion") {
+      jsonData[key] = value ? JSON.parse(value) : [];
+    } else if (key === "priceAmount") {
+      jsonData.price = { ...jsonData.price, amount: parseFloat(value) };
+    } else if (key === "priceCurrency") {
+      jsonData.price = { ...jsonData.price, currency: value };
+    } else if (key === "stock" || key === "priceAmount") {
+      jsonData[key] = parseFloat(value);
+    } else if (key === "isActive") {
+      jsonData[key] = value === "true";
+    } else {
+      jsonData[key] = value;
+    }
+  }
+
+  await updateExistingProduct(id, jsonData);
+  navigate("/seller/products");
+};
 
   if (loading) {
     return <div className="min-h-screen bg-[#FBF4E8] flex items-center justify-center">Loading...</div>;

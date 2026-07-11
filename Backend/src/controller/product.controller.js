@@ -170,11 +170,6 @@ export const getProductById = async (req, res) => {
 
 
 
-/**
- * Update product (only if seller owns it)
- * @route PUT /api/products/:id
- * @access Seller only
- */
 export const updateProduct = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -194,36 +189,76 @@ export const updateProduct = async (req, res) => {
       });
     }
 
+    // req.body now has data because multer parsed FormData
     const {
       title,
       description,
-      price,
       category,
       subCategory,
-      images,
-      availableSizes,
-      colors,
       fabric,
-      occasion,
       stock,
       isActive,
-      isFeatured,
     } = req.body;
+
+    // Parse price if sent
+    let price = product.price;
+    if (req.body.priceAmount) {
+      price = {
+        amount: parseFloat(req.body.priceAmount),
+        currency: req.body.priceCurrency || product.price.currency,
+      };
+    }
+
+    // Parse arrays
+    let availableSizes = product.availableSizes;
+    if (req.body.availableSizes) {
+      try {
+        availableSizes = JSON.parse(req.body.availableSizes);
+      } catch {
+        availableSizes = req.body.availableSizes;
+      }
+    }
+
+    let colors = product.colors;
+    if (req.body.colors) {
+      try {
+        colors = JSON.parse(req.body.colors);
+      } catch {
+        colors = req.body.colors;
+      }
+    }
+
+    let occasion = product.occasion;
+    if (req.body.occasion) {
+      try {
+        occasion = JSON.parse(req.body.occasion);
+      } catch {
+        occasion = req.body.occasion;
+      }
+    }
 
     // Update only fields that are provided
     if (title) product.title = title;
     if (description) product.description = description;
-    if (price) product.price = price;
     if (category) product.category = category;
     if (subCategory) product.subCategory = subCategory;
-    if (images) product.images = images;
+    if (fabric) product.fabric = fabric;
+    if (stock !== undefined) product.stock = parseFloat(stock);
+    if (isActive !== undefined) product.isActive = isActive === "true";
+    if (price) product.price = price;
     if (availableSizes) product.availableSizes = availableSizes;
     if (colors) product.colors = colors;
-    if (fabric) product.fabric = fabric;
     if (occasion) product.occasion = occasion;
-    if (stock !== undefined) product.stock = stock;
-    if (isActive !== undefined) product.isActive = isActive;
-    if (isFeatured !== undefined) product.isFeatured = isFeatured;
+
+    // Handle new images if uploaded
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map((file, index) => ({
+        url: file.path,
+        alt: req.body.altTexts?.[index] || `${product.title} - Image ${index + 1}`,
+        isMain: false,
+      }));
+      product.images = [...product.images, ...newImages];
+    }
 
     await product.save();
 

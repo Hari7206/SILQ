@@ -10,7 +10,7 @@ import {
 } from "../controller/product.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/role.middleware.js";
-import upload from "../utils/multer.config.js"; // ← Import multer
+import upload from "../utils/multer.config.js";
 
 const router = Router();
 
@@ -19,10 +19,10 @@ router.use(protect);
 router.use(authorize("seller"));
 
 // Product CRUD with image upload
-router.post("/", upload.array("images", 5), createProduct); // ← Updated
+router.post("/", upload.array("images", 5), createProduct);
 router.get("/", getProducts);
 router.get("/:id", getProductById);
-router.put("/:id", updateProduct);
+router.put("/:id", upload.array("images", 5), updateProduct); // ← ADD upload HERE
 router.delete("/:id", deleteProduct);
 
 // Image management
