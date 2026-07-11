@@ -60,3 +60,16 @@ export const removeProductImage = async (id, imageUrl) => {
   });
   return res.data;
 };
+
+
+
+export const getPublicProducts = async () => {
+  const res = await productApi.get("/public");
+  return res.data;
+};
+
+// Get single product by ID (public)
+export const getPublicProductById = async (id) => {
+  const res = await productApi.get(`/public/${id}`);
+  return res.data;
+};

@@ -1,6 +1,7 @@
 import { useDispatch, useSelector } from "react-redux";
 import { setLoading, setError, setProducts, setProduct, addProduct, updateProduct, removeProduct, clearSuccess, resetProduct } from "../state/product.slice";
-import { getProducts as getProductsAPI, getProductById as getProductByIdAPI, createProduct as createProductAPI, updateProduct as updateProductAPI, deleteProduct as deleteProductAPI, addProductImages as addProductImagesAPI, removeProductImage as removeProductImageAPI } from "../service/product.api";
+import { getProducts as getProductsAPI, getProductById as getProductByIdAPI, createProduct as createProductAPI, updateProduct as updateProductAPI, deleteProduct as deleteProductAPI, addProductImages as addProductImagesAPI, removeProductImage as removeProductImageAPI  , getPublicProducts as getPublicProductsAPI,        // ← NEW
+  getPublicProductById as getPublicProductByIdAPI, } from "../service/product.api";
 
 
 
@@ -9,6 +10,30 @@ export const useProduct = () => {
   const dispatch = useDispatch();
   const { products, product, loading, error, success } = useSelector((state) => state.products);
 
+
+    const fetchPublicProducts = async () => {
+    try {
+      dispatch(setLoading(true));
+      const data = await getPublicProductsAPI();
+      dispatch(setProducts(data.products));
+      return data;
+    } catch (error) {
+      dispatch(setError(error.response?.data?.message || "Failed to fetch products"));
+      throw error;
+    }
+  };
+ 
+  const fetchPublicProductById = async (id) => {
+    try {
+      dispatch(setLoading(true));
+      const data = await getPublicProductByIdAPI(id);
+      dispatch(setProduct(data.product));
+      return data;
+    } catch (error) {
+      dispatch(setError(error.response?.data?.message || "Failed to fetch product"));
+      throw error;
+    }
+  };
   const fetchProducts = async () => {
     try {
       dispatch(setLoading(true));
@@ -105,5 +130,6 @@ export const useProduct = () => {
   
   };
 
-  return { products, product, loading, error, success, fetchProducts, fetchProductById, createNewProduct, updateExistingProduct, deleteExistingProduct, addMoreImages, removeImage, clearProductSuccess, resetProductState, clearProductError };
+  return { products, product, loading, error, success, fetchProducts, fetchProductById, createNewProduct, updateExistingProduct, deleteExistingProduct, addMoreImages, removeImage, clearProductSuccess, resetProductState, clearProductError , fetchPublicProducts,
+    fetchPublicProductById,};
 };

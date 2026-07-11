@@ -437,3 +437,71 @@ export const deleteProduct = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get all public products (for home page)
+ * @route GET /api/products/public
+ * @access Public
+ */
+export const getPublicProducts = async (req, res) => {
+  try {
+    // Get only active products
+    const products = await productModel
+      .find({ isActive: true })
+      .select("-__v") // Exclude version field
+      .sort({ createdAt: -1 }) // Newest first
+      .populate("seller", "fullname email"); // Get seller info
+
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      products,
+    });
+  } catch (error) {
+    console.error("Get public products error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching products",
+    });
+  }
+};
+
+/**
+ * Get single public product by ID
+ * @route GET /api/products/public/:id
+ * @access Public
+ */
+export const getPublicProductById = async (req, res) => {
+  try {
+    const product = await productModel
+      .findById(req.params.id)
+      .select("-__v")
+      .populate("seller", "fullname email");
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Check if product is active
+    if (!product.isActive) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not available",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      product,
+    });
+  } catch (error) {
+    console.error("Get public product error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching product",
+    });
+  }
+};
