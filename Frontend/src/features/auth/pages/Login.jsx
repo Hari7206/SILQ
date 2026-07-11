@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../hook/useAuth.js";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 function Login() {
   const { handleLogin } = useAuth();
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -13,6 +15,17 @@ function Login() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // If already logged in, redirect based on role
+  useEffect(() => {
+    if (user && !authLoading) {
+      if (user.role === "seller") {
+        navigate("/seller/products", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [user, authLoading, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,9 +44,9 @@ function Login() {
       const data = await handleLogin(formData);
       // Redirect based on role
       if (data?.user?.role === "seller") {
-        navigate("/seller/products");
+        navigate("/seller/products", { replace: true });
       } else {
-        navigate("/");
+        navigate("/", { replace: true });
       }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please check your credentials.");
@@ -49,6 +62,23 @@ function Login() {
   const goToHome = () => {
     navigate("/");
   };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#FBF4E8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#F5C451] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If already logged in, don't show login page (redirect happens in useEffect)
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="relative min-h-screen bg-[#FBF4E8] flex flex-col">
