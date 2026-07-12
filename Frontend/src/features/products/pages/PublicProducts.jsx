@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { useProduct } from "../hook/useProduct";
 import PublicProductCard from "../components/PublicProductCard";
-<<<<<<< HEAD
-import { Search, Filter } from "lucide-react";
-=======
 import { Search } from "lucide-react";
->>>>>>> 82f10fe (varient added)
 
 const PublicProducts = () => {
   const { fetchPublicProducts, products, loading } = useProduct();
@@ -57,13 +53,6 @@ const PublicProducts = () => {
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-[#F5C451] focus:border-transparent focus:outline-none"
               />
             </div>
-<<<<<<< HEAD
-            <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm hover:bg-gray-50 transition">
-              <Filter size={16} />
-              Filter
-            </button>
-=======
->>>>>>> 82f10fe (varient added)
           </div>
         </div>
       </div>

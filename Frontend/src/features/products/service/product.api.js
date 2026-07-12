@@ -5,6 +5,7 @@ const productApi = axios.create({
   withCredentials: true,
 });
 
+// ============ PUBLIC APIs (No login required) ============
 
 // Get all products for home page
 export const getPublicProducts = async () => {
@@ -18,6 +19,7 @@ export const getPublicProductById = async (id) => {
   return res.data;
 };
 
+// ============ PROTECTED APIs (Login + Seller only) ============
 
 // Get all products (seller's own products)
 export const getProducts = async () => {
@@ -72,18 +74,5 @@ export const removeProductImage = async (id, imageUrl) => {
   const res = await productApi.delete(`/${id}/remove-image`, {
     data: { imageUrl },
   });
-  return res.data;
-};
-
-
-
-export const getPublicProducts = async () => {
-  const res = await productApi.get("/public");
-  return res.data;
-};
-
-// Get single product by ID (public)
-export const getPublicProductById = async (id) => {
-  const res = await productApi.get(`/public/${id}`);
   return res.data;
 };

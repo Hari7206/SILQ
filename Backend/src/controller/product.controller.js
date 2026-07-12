@@ -1,7 +1,5 @@
 import productModel from "../model/product.model.js";
 
-
-
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -46,11 +44,10 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Distribute images to ALL variants
+    // Distribute images to ALL variants
     if (req.files && req.files.length > 0) {
       const uploadedUrls = req.files.map((file) => file.path);
       
-      // Assign one image to each variant (if available)
       parsedVariants.forEach((variant, index) => {
         if (uploadedUrls[index]) {
           variant.images = [uploadedUrls[index]];
@@ -131,8 +128,6 @@ export const createProduct = async (req, res) => {
   }
 };
 
-
-
 /**
  * Get all products for the logged-in seller
  * @route GET /api/products
@@ -140,7 +135,6 @@ export const createProduct = async (req, res) => {
  */
 export const getProducts = async (req, res) => {
   try {
-    // Only products where seller = logged-in user
     const products = await productModel.find({ seller: req.user._id });
 
     res.status(200).json({
@@ -157,27 +151,11 @@ export const getProducts = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
-
 /**
  * Get single product by ID (only if seller owns it)
  * @route GET /api/products/:id
  * @access Seller only
  */
-
-
-
-
-
-
-
-
 export const getProductById = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -189,7 +167,6 @@ export const getProductById = async (req, res) => {
       });
     }
 
-    // Check if seller owns this product
     if (product.seller.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -210,16 +187,11 @@ export const getProductById = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
-
-
-
+/**
+ * Update product with variants
+ * @route PUT /api/products/:id
+ * @access Seller only
+ */
 export const updateProduct = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -231,7 +203,6 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // Check if seller owns this product
     if (product.seller.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -239,7 +210,6 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // req.body now has data because multer parsed FormData
     const {
       title,
       description,
@@ -250,7 +220,6 @@ export const updateProduct = async (req, res) => {
       isActive,
     } = req.body;
 
-    // Parse price if sent
     let price = product.price;
     if (req.body.priceAmount) {
       price = {
@@ -259,7 +228,6 @@ export const updateProduct = async (req, res) => {
       };
     }
 
-    // Parse arrays
     let availableSizes = product.availableSizes;
     if (req.body.availableSizes) {
       try {
@@ -287,7 +255,6 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // Update only fields that are provided
     if (title) product.title = title;
     if (description) product.description = description;
     if (category) product.category = category;
@@ -300,7 +267,6 @@ export const updateProduct = async (req, res) => {
     if (colors) product.colors = colors;
     if (occasion) product.occasion = occasion;
 
-    // Handle new images if uploaded
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map((file, index) => ({
         url: file.path,
@@ -326,13 +292,6 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
 /**
  * Add more images to existing product
  * @route PUT /api/products/:id/add-images
@@ -349,7 +308,6 @@ export const addProductImages = async (req, res) => {
       });
     }
 
-    // Check if seller owns this product
     if (product.seller.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -357,7 +315,6 @@ export const addProductImages = async (req, res) => {
       });
     }
 
-    // Check if images were uploaded
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
@@ -365,14 +322,12 @@ export const addProductImages = async (req, res) => {
       });
     }
 
-    // Process new images
     const newImages = req.files.map((file, index) => ({
       url: file.path,
       alt: req.body.altTexts?.[index] || `Product image ${index + 1}`,
       isMain: false,
     }));
 
-    // Add new images to existing images array
     product.images.push(...newImages);
     await product.save();
 
@@ -390,7 +345,6 @@ export const addProductImages = async (req, res) => {
   }
 };
 
-
 /**
  * Remove an image from product
  * @route DELETE /api/products/:id/remove-image
@@ -407,7 +361,6 @@ export const removeProductImage = async (req, res) => {
       });
     }
 
-    // Check if seller owns this product
     if (product.seller.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -415,7 +368,7 @@ export const removeProductImage = async (req, res) => {
       });
     }
 
-    const { imageUrl } = req.body; // URL of image to remove
+    const { imageUrl } = req.body;
 
     if (!imageUrl) {
       return res.status(400).json({
@@ -424,7 +377,6 @@ export const removeProductImage = async (req, res) => {
       });
     }
 
-    // Remove the image from array
     product.images = product.images.filter(
       (img) => img.url !== imageUrl
     );
@@ -444,11 +396,6 @@ export const removeProductImage = async (req, res) => {
   }
 };
 
-// ... rest of your existing functions (getProducts, getProductById, updateProduct, deleteProduct)
-
-
-
-
 /**
  * Delete product (only if seller owns it)
  * @route DELETE /api/products/:id
@@ -465,7 +412,6 @@ export const deleteProduct = async (req, res) => {
       });
     }
 
-    // Check if seller owns this product
     if (product.seller.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -488,26 +434,11 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
 /**
  * Get all public products (for home page)
  * @route GET /api/products/public
  * @access Public
  */
-export const getPublicProducts = async (req, res) => {
-  try {
-    // Get only active products
-    const products = await productModel
-      .find({ isActive: true })
-      .select("-__v") // Exclude version field
-      .sort({ createdAt: -1 }) // Newest first
-      .populate("seller", "fullname email"); // Get seller info
-
-    res.status(200).json({
-      success: true,
-      count: products.length,
-      products,
-=======
 export const getPublicProducts = async (req, res) => {
   try {
     const products = await productModel
@@ -516,7 +447,6 @@ export const getPublicProducts = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate("seller", "fullname email");
 
-    // Add virtual fields to response
     const productsWithVirtuals = products.map((p) => ({
       ...p.toObject(),
       priceRange: p.priceRange,
@@ -527,7 +457,6 @@ export const getPublicProducts = async (req, res) => {
       success: true,
       count: productsWithVirtuals.length,
       products: productsWithVirtuals,
->>>>>>> 82f10fe (varient added)
     });
   } catch (error) {
     console.error("Get public products error:", error);
@@ -557,10 +486,6 @@ export const getPublicProductById = async (req, res) => {
       });
     }
 
-<<<<<<< HEAD
-    // Check if product is active
-=======
->>>>>>> 82f10fe (varient added)
     if (!product.isActive) {
       return res.status(404).json({
         success: false,
@@ -568,12 +493,6 @@ export const getPublicProductById = async (req, res) => {
       });
     }
 
-<<<<<<< HEAD
-    res.status(200).json({
-      success: true,
-      product,
-=======
-    // Add virtual fields
     const productWithVirtuals = {
       ...product.toObject(),
       priceRange: product.priceRange,
@@ -583,7 +502,6 @@ export const getPublicProductById = async (req, res) => {
     res.status(200).json({
       success: true,
       product: productWithVirtuals,
->>>>>>> 82f10fe (varient added)
     });
   } catch (error) {
     console.error("Get public product error:", error);

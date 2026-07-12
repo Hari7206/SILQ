@@ -1,12 +1,4 @@
 import { useDispatch, useSelector } from "react-redux";
-<<<<<<< HEAD
-import { setLoading, setError, setProducts, setProduct, addProduct, updateProduct, removeProduct, clearSuccess, resetProduct } from "../state/product.slice";
-import { getProducts as getProductsAPI, getProductById as getProductByIdAPI, createProduct as createProductAPI, updateProduct as updateProductAPI, deleteProduct as deleteProductAPI, addProductImages as addProductImagesAPI, removeProductImage as removeProductImageAPI  , getPublicProducts as getPublicProductsAPI,        // ← NEW
-  getPublicProductById as getPublicProductByIdAPI, } from "../service/product.api";
-
-
-
-=======
 import {
   setLoading,
   setError,
@@ -29,7 +21,6 @@ import {
   getPublicProducts as getPublicProductsAPI,
   getPublicProductById as getPublicProductByIdAPI,
 } from "../service/product.api";
->>>>>>> 82f10fe (varient added)
 
 export const useProduct = () => {
   const dispatch = useDispatch();
@@ -69,30 +60,6 @@ export const useProduct = () => {
 
   // ============ PROTECTED APIs (Seller only) ============
 
-
-    const fetchPublicProducts = async () => {
-    try {
-      dispatch(setLoading(true));
-      const data = await getPublicProductsAPI();
-      dispatch(setProducts(data.products));
-      return data;
-    } catch (error) {
-      dispatch(setError(error.response?.data?.message || "Failed to fetch products"));
-      throw error;
-    }
-  };
- 
-  const fetchPublicProductById = async (id) => {
-    try {
-      dispatch(setLoading(true));
-      const data = await getPublicProductByIdAPI(id);
-      dispatch(setProduct(data.product));
-      return data;
-    } catch (error) {
-      dispatch(setError(error.response?.data?.message || "Failed to fetch product"));
-      throw error;
-    }
-  };
   const fetchProducts = async () => {
     try {
       dispatch(setLoading(true));
@@ -203,10 +170,6 @@ export const useProduct = () => {
     // dispatch(clearError());
   };
 
-<<<<<<< HEAD
-  return { products, product, loading, error, success, fetchProducts, fetchProductById, createNewProduct, updateExistingProduct, deleteExistingProduct, addMoreImages, removeImage, clearProductSuccess, resetProductState, clearProductError , fetchPublicProducts,
-    fetchPublicProductById,};
-=======
   return {
     // State
     products,
@@ -231,5 +194,4 @@ export const useProduct = () => {
     resetProductState,
     clearProductError,
   };
->>>>>>> 82f10fe (varient added)
 };
