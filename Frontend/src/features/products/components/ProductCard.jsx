@@ -3,7 +3,11 @@ import { ArrowUpRight, Trash2 } from "lucide-react";
 
 const ProductCard = ({ product, onDelete }) => {
   const navigate = useNavigate();
-  const mainImage = product.images?.find(img => img.isMain) || product.images?.[0];
+  
+  // ✅ FIX: Get image from variants
+  const mainImage = product.mainImage || product.variants?.[0]?.images?.[0];
+  const priceRange = product.priceRange || { min: 0, max: 0 };
+  const totalStock = product.totalStock || 0;
 
   return (
     <div className="bg-white rounded-[2rem] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col w-full transition-all duration-300 hover:shadow-[0_16px_35px_rgba(0,0,0,0.06)] group">
@@ -12,8 +16,8 @@ const ProductCard = ({ product, onDelete }) => {
       <div className="relative aspect-square w-full rounded-[1.5rem] overflow-hidden mb-4 bg-[#F5F5F5]">
         {mainImage ? (
           <img 
-            src={mainImage.url} 
-            alt={mainImage.alt} 
+            src={mainImage} 
+            alt={product.title} 
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
           />
         ) : (
@@ -22,12 +26,12 @@ const ProductCard = ({ product, onDelete }) => {
           </div>
         )}
 
-        {/* Status Pill Badge (Top Left - Matches "Best Seller" placement) */}
+        {/* Status Pill Badge */}
         <div className="absolute top-3 left-3 bg-black/45 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-wide">
           {product.isActive ? "Active" : "Inactive"}
         </div>
 
-        {/* Circular Action Badge (Top Right - Matches Brand Circle placement) */}
+        {/* Circular Action Badge */}
         <button 
           onClick={(e) => {
             e.stopPropagation();
@@ -39,7 +43,7 @@ const ProductCard = ({ product, onDelete }) => {
           <Trash2 size={13} />
         </button>
 
-        {/* Bottom Image Dots (Matches visual slider dots from screenshot) */}
+        {/* Bottom Image Dots Indicator */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
           <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
           <span className="w-1.5 h-1.5 rounded-full bg-white/40"></span>
@@ -57,9 +61,9 @@ const ProductCard = ({ product, onDelete }) => {
           {product.category || "Uncategorized"}
         </p>
         
-        {/* Subtle Description line matching screenshot style */}
+        {/* Subtle Description Line */}
         <p className="text-xs text-gray-400/90 font-normal leading-relaxed line-clamp-2 mb-5">
-          {product.description || `Stock available: ${product.stock} units. Manage your current listings directly from the interactive control bar.`}
+          {product.description || `Stock available: ${totalStock} units. Manage your current listings directly from the interactive control bar.`}
         </p>
 
         {/* Bottom Action Section */}
@@ -67,7 +71,7 @@ const ProductCard = ({ product, onDelete }) => {
           
           {/* Price Capsule Label */}
           <div className="bg-[#EEF0F2] text-gray-900 text-xs font-bold px-4 py-2 rounded-full">
-            ₹{product.price?.amount || "0"}
+            ₹{priceRange.min || "0"}
           </div>
 
           {/* Primary Action Rounded Button */}

@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Plus, X, ChevronDown, ChevronUp, Image as ImageIcon, Upload } from "lucide-react";
 
@@ -36,34 +37,31 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
   const [variantImagePreviews, setVariantImagePreviews] = useState({});
   const [uploadingImages, setUploadingImages] = useState({});
 
-// Add this function
-const uploadToCloudinary = async (file) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+  const uploadToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
 
-  try {
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-    const data = await res.json();
-    return data.secure_url;
-  } catch (error) {
-    console.error("Upload failed:", error);
-    return null;
-  }
-};
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      const data = await res.json();
+      return data.secure_url;
+    } catch (error) {
+      console.error("Upload failed:", error);
+      return null;
+    }
+  };
 
   const fileInputRefs = useRef({});
 
   const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL"];
   const currencyOptions = ["INR", "USD", "EUR", "GBP"];
-
-  // ========== HANDLERS ==========
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -91,8 +89,6 @@ const uploadToCloudinary = async (file) => {
         : [...prev.availableSizes, size],
     }));
   };
-
-
 
   const handleVariantChange = (index, field, value) => {
     const newVariants = [...formData.variants];
@@ -137,45 +133,39 @@ const uploadToCloudinary = async (file) => {
     }
   };
 
-  // ========== VARIANT IMAGE HANDLERS ==========
+  const handleVariantImageUpload = async (index, files) => {
+    const fileArray = Array.from(files).slice(0, 5 - formData.variants[index].images.length);
+    
+    if (fileArray.length === 0) return;
 
- const handleVariantImageUpload = async (index, files) => {
-  const fileArray = Array.from(files).slice(0, 5 - formData.variants[index].images.length);
-  
-  if (fileArray.length === 0) return;
+    setUploadingImages((prev) => ({ ...prev, [index]: true }));
 
-  // Show uploading state
-  setUploadingImages((prev) => ({ ...prev, [index]: true }));
+    const newVariants = [...formData.variants];
+    const newPreviews = [];
 
-  const newVariants = [...formData.variants];
-  const newPreviews = [];
+    for (const file of fileArray) {
+      const preview = URL.createObjectURL(file);
+      newPreviews.push(preview);
 
-  for (const file of fileArray) {
-    // Create preview
-    const preview = URL.createObjectURL(file);
-    newPreviews.push(preview);
-
-    // Upload to Cloudinary
-    const url = await uploadToCloudinary(file);
-    if (url) {
-      newVariants[index].images.push(url);
+      const url = await uploadToCloudinary(file);
+      if (url) {
+        newVariants[index].images.push(url);
+      }
     }
-  }
 
-  // Update previews
-  setVariantImagePreviews((prev) => ({
-    ...prev,
-    [index]: [...(prev[index] || []), ...newPreviews],
-  }));
+    setVariantImagePreviews((prev) => ({
+      ...prev,
+      [index]: [...(prev[index] || []), ...newPreviews],
+    }));
 
-  setFormData((prev) => ({ ...prev, variants: newVariants }));
-  setUploadingImages((prev) => ({ ...prev, [index]: false }));
-};
+    setFormData((prev) => ({ ...prev, variants: newVariants }));
+    setUploadingImages((prev) => ({ ...prev, [index]: false }));
+  };
+
   const removeVariantImage = (variantIndex, imageIndex) => {
     const newVariants = [...formData.variants];
     newVariants[variantIndex].images = newVariants[variantIndex].images.filter((_, i) => i !== imageIndex);
     
-    // Remove preview
     setVariantImagePreviews((prev) => ({
       ...prev,
       [variantIndex]: prev[variantIndex]?.filter((_, i) => i !== imageIndex) || [],
@@ -184,12 +174,9 @@ const uploadToCloudinary = async (file) => {
     setFormData((prev) => ({ ...prev, variants: newVariants }));
   };
 
-  // ========== SUBMIT ==========
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate variants
     for (const variant of formData.variants) {
       if (!variant.color || !variant.price.amount || !variant.stock) {
         alert("Each variant must have color, price, and stock");
@@ -199,7 +186,6 @@ const uploadToCloudinary = async (file) => {
 
     const formDataToSend = new FormData();
 
-    // Add simple fields
     Object.keys(formData).forEach((key) => {
       if (key === "variants" || key === "badges" || key === "availableSizes") return;
       if (key === "occasion") {
@@ -210,13 +196,9 @@ const uploadToCloudinary = async (file) => {
       }
     });
 
-    // Add availableSizes
     formDataToSend.append("availableSizes", JSON.stringify(formData.availableSizes));
-
-    // Add badges
     formDataToSend.append("badges", JSON.stringify(formData.badges));
 
-    // Add variants (with images as URLs)
     const variantsToSend = formData.variants.map((v) => ({
       ...v,
       price: {
@@ -228,11 +210,8 @@ const uploadToCloudinary = async (file) => {
     }));
     formDataToSend.append("variants", JSON.stringify(variantsToSend));
 
-    // For now, we'll handle images separately in the parent component
     onSubmit(formDataToSend);
   };
-
-  // ========== UI ==========
 
   const inputClass =
     "w-full border border-gray-200 bg-gray-50/60 px-3.5 py-2.5 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#F5C451]/40 focus:border-[#F5C451] outline-none transition";
@@ -246,7 +225,6 @@ const uploadToCloudinary = async (file) => {
         </div>
       )}
 
-      {/* ====== GENERAL INFORMATION ====== */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h3 className="text-sm font-semibold text-gray-900 mb-4">General Information</h3>
         <div className="space-y-4">
@@ -300,7 +278,6 @@ const uploadToCloudinary = async (file) => {
         </div>
       </div>
 
-      {/* ====== VARIANTS (Color + Price + Stock + Images) ====== */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-900">Variants (Color, Price, Stock) *</h3>
@@ -318,7 +295,6 @@ const uploadToCloudinary = async (file) => {
             key={index}
             className={`border rounded-xl p-4 mb-3 transition ${index === expandedVariant ? "border-indigo-300 bg-indigo-50/30" : "border-gray-200"}`}
           >
-            {/* Variant Header */}
             <div
               className="flex items-center justify-between cursor-pointer"
               onClick={() => setExpandedVariant(index === expandedVariant ? -1 : index)}
@@ -355,7 +331,6 @@ const uploadToCloudinary = async (file) => {
               </div>
             </div>
 
-            {/* Variant Body */}
             {index === expandedVariant && (
               <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
@@ -439,11 +414,9 @@ const uploadToCloudinary = async (file) => {
                   </div>
                 </div>
 
-                {/* ✅ PER-VARIANT IMAGE UPLOAD */}
                 <div>
                   <label className="text-xs font-medium text-gray-600">Images (max 5)</label>
                   <div className="mt-2">
-                    {/* Image previews */}
                     {variant.images.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {variant.images.map((img, imgIndex) => (
@@ -473,41 +446,40 @@ const uploadToCloudinary = async (file) => {
                       </div>
                     )}
 
-{/* Upload button */}
-{variant.images.length < 5 && (
-  <label className={`flex items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer transition ${
-    uploadingImages[index] 
-      ? "border-indigo-300 bg-indigo-50/40" 
-      : "border-gray-200 hover:border-[#F5C451] hover:bg-[#FDF7E8]/40"
-  }`}>
-    <div className="flex flex-col items-center gap-1">
-      {uploadingImages[index] ? (
-        <>
-          <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-xs text-indigo-500">Uploading...</span>
-        </>
-      ) : (
-        <>
-          <Upload size={16} className="text-gray-400" />
-          <span className="text-xs text-gray-400">Upload image</span>
-        </>
-      )}
-    </div>
-    <input
-      type="file"
-      accept="image/*"
-      multiple
-      className="hidden"
-      disabled={uploadingImages[index]}
-      onChange={(e) => {
-        if (e.target.files.length > 0) {
-          handleVariantImageUpload(index, e.target.files);
-        }
-        e.target.value = "";
-      }}
-    />
-  </label>
-)}
+                    {variant.images.length < 5 && (
+                      <label className={`flex items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer transition ${
+                        uploadingImages[index] 
+                          ? "border-indigo-300 bg-indigo-50/40" 
+                          : "border-gray-200 hover:border-[#F5C451] hover:bg-[#FDF7E8]/40"
+                      }`}>
+                        <div className="flex flex-col items-center gap-1">
+                          {uploadingImages[index] ? (
+                            <>
+                              <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                              <span className="text-xs text-indigo-500">Uploading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={16} className="text-gray-400" />
+                              <span className="text-xs text-gray-400">Upload image</span>
+                            </>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          disabled={uploadingImages[index]}
+                          onChange={(e) => {
+                            if (e.target.files.length > 0) {
+                              handleVariantImageUpload(index, e.target.files);
+                            }
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    )}
                     <p className="text-[10px] text-gray-400 mt-1">
                       {variant.images.length}/5 images
                     </p>
@@ -519,7 +491,6 @@ const uploadToCloudinary = async (file) => {
         ))}
       </div>
 
-      {/* ====== SIZES ====== */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h3 className="text-sm font-semibold text-gray-900 mb-4">Available Sizes</h3>
         <div className="flex flex-wrap gap-2">
@@ -543,7 +514,6 @@ const uploadToCloudinary = async (file) => {
         </div>
       </div>
 
-      {/* ====== ADDITIONAL DETAILS ====== */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h3 className="text-sm font-semibold text-gray-900 mb-4">Additional Details</h3>
         <div className="grid grid-cols-2 gap-4">
@@ -572,7 +542,6 @@ const uploadToCloudinary = async (file) => {
         </div>
       </div>
 
-      {/* ====== TRUST BADGES ====== */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h3 className="text-sm font-semibold text-gray-900 mb-4">Trust Badges</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -596,7 +565,6 @@ const uploadToCloudinary = async (file) => {
         </div>
       </div>
 
-      {/* ====== STATUS & FEATURED ====== */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h3 className="text-sm font-semibold text-gray-900 mb-4">Status</h3>
         <div className="flex flex-wrap gap-6">
@@ -623,7 +591,6 @@ const uploadToCloudinary = async (file) => {
         </div>
       </div>
 
-      {/* ====== SUBMIT ====== */}
       <button
         type="submit"
         disabled={loading}
@@ -636,3 +603,4 @@ const uploadToCloudinary = async (file) => {
 };
 
 export default ProductForm;
+
