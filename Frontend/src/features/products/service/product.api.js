@@ -5,13 +5,27 @@ const productApi = axios.create({
   withCredentials: true,
 });
 
+
+// Get all products for home page
+export const getPublicProducts = async () => {
+  const res = await productApi.get("/public");
+  return res.data;
+};
+
+// Get single product by ID (public)
+export const getPublicProductById = async (id) => {
+  const res = await productApi.get(`/public/${id}`);
+  return res.data;
+};
+
+
 // Get all products (seller's own products)
 export const getProducts = async () => {
   const res = await productApi.get("/");
   return res.data;
 };
 
-// Get single product
+// Get single product (seller's own)
 export const getProductById = async (id) => {
   const res = await productApi.get(`/${id}`);
   return res.data;

@@ -4,65 +4,116 @@ import productModel from "../model/product.model.js";
 
 export const createProduct = async (req, res) => {
   try {
-    // Get form-data fields
     const {
       title,
       description,
-      priceAmount,
-      priceCurrency,
       category,
       subCategory,
+      variants,
       availableSizes,
-      colors,
       fabric,
       occasion,
-      stock,
+      badges,
+      isActive,
+      isFeatured,
     } = req.body;
 
     // Check required fields
-    if (!title || !description || !priceAmount || !category) {
+    if (!title || !description || !category) {
       return res.status(400).json({
         success: false,
-        message: "Please provide title, description, price, and category",
+        message: "Please provide title, description, and category",
       });
     }
 
-    // Check if images were uploaded
-    if (!req.files || req.files.length === 0) {
+    // Parse variants
+    let parsedVariants = variants;
+    if (typeof variants === "string") {
+      try {
+        parsedVariants = JSON.parse(variants);
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid variants format",
+        });
+      }
+    }
+
+    if (!parsedVariants || parsedVariants.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Please upload at least one image",
+        message: "Please add at least one variant",
       });
     }
 
-    // Process images from Cloudinary
-    const images = req.files.map((file, index) => ({
-      url: file.path,
-      alt: req.body.altTexts?.[index] || `${title} - Image ${index + 1}`,
-      isMain: index === 0, // First image is main
+    // ✅ FIX: Distribute images to ALL variants
+    if (req.files && req.files.length > 0) {
+      const uploadedUrls = req.files.map((file) => file.path);
+      
+      // Assign one image to each variant (if available)
+      parsedVariants.forEach((variant, index) => {
+        if (uploadedUrls[index]) {
+          variant.images = [uploadedUrls[index]];
+        }
+      });
+    }
+
+    // Validate variants
+    for (const variant of parsedVariants) {
+      if (!variant.color || !variant.price?.amount || variant.stock === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: "Each variant must have color, price, and stock",
+        });
+      }
+    }
+
+    // Parse availableSizes
+    let parsedSizes = availableSizes;
+    if (typeof availableSizes === "string") {
+      try {
+        parsedSizes = JSON.parse(availableSizes);
+        if (!Array.isArray(parsedSizes)) {
+          parsedSizes = [];
+        }
+      } catch {
+        parsedSizes = [];
+      }
+    }
+
+    // Parse badges
+    let parsedBadges = badges || {};
+    if (typeof badges === "string") {
+      try {
+        parsedBadges = JSON.parse(badges);
+      } catch {
+        parsedBadges = {};
+      }
+    }
+
+    // Get main image (first variant's first image)
+    const mainImage = parsedVariants[0]?.images?.[0] || null;
+
+    // Remove SKU if empty to avoid duplicate error
+    const cleanedVariants = parsedVariants.map((v) => ({
+      ...v,
+      sku: v.sku || undefined,
     }));
-
-    // Parse arrays from form-data (they come as strings)
-    const parsedSizes = availableSizes ? JSON.parse(availableSizes) : [];
-    const parsedColors = colors ? JSON.parse(colors) : [];
-    const parsedOccasion = occasion ? JSON.parse(occasion) : [];
 
     // Create product
     const product = await productModel.create({
       title,
       description,
-      price: {
-        amount: parseFloat(priceAmount),
-        currency: priceCurrency || "INR",
-      },
       category,
       subCategory: subCategory || null,
-      images: images,
-      availableSizes: parsedSizes,
-      colors: parsedColors,
+      mainImage,
+      variants: cleanedVariants,
+      availableSizes: parsedSizes || [],
       fabric: fabric || null,
-      occasion: parsedOccasion,
-      stock: parseInt(stock) || 0,
+      occasion: occasion || [],
+      badges: parsedBadges,
+      isActive: isActive !== undefined ? isActive : true,
+      isFeatured: isFeatured || false,
       seller: req.user._id,
     });
 
@@ -75,11 +126,10 @@ export const createProduct = async (req, res) => {
     console.error("Create product error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error while creating product",
+      message: error.message || "Server error while creating product",
     });
   }
 };
-
 
 
 
@@ -438,6 +488,7 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
+<<<<<<< HEAD
 /**
  * Get all public products (for home page)
  * @route GET /api/products/public
@@ -456,6 +507,27 @@ export const getPublicProducts = async (req, res) => {
       success: true,
       count: products.length,
       products,
+=======
+export const getPublicProducts = async (req, res) => {
+  try {
+    const products = await productModel
+      .find({ isActive: true })
+      .select("-__v")
+      .sort({ createdAt: -1 })
+      .populate("seller", "fullname email");
+
+    // Add virtual fields to response
+    const productsWithVirtuals = products.map((p) => ({
+      ...p.toObject(),
+      priceRange: p.priceRange,
+      totalStock: p.totalStock,
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: productsWithVirtuals.length,
+      products: productsWithVirtuals,
+>>>>>>> 82f10fe (varient added)
     });
   } catch (error) {
     console.error("Get public products error:", error);
@@ -485,7 +557,10 @@ export const getPublicProductById = async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
     // Check if product is active
+=======
+>>>>>>> 82f10fe (varient added)
     if (!product.isActive) {
       return res.status(404).json({
         success: false,
@@ -493,9 +568,22 @@ export const getPublicProductById = async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
     res.status(200).json({
       success: true,
       product,
+=======
+    // Add virtual fields
+    const productWithVirtuals = {
+      ...product.toObject(),
+      priceRange: product.priceRange,
+      totalStock: product.totalStock,
+    };
+
+    res.status(200).json({
+      success: true,
+      product: productWithVirtuals,
+>>>>>>> 82f10fe (varient added)
     });
   } catch (error) {
     console.error("Get public product error:", error);

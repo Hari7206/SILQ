@@ -1,10 +1,8 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
 import { useSelector } from "react-redux";
-import ProductCard from "../components/ProductCard";
-import { Search, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 const SellerProducts = () => {
   const navigate = useNavigate();
@@ -27,94 +25,72 @@ const SellerProducts = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-gray-200 border-t-[#F17A5D] rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-[#F7F5F1] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#F5C451] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading products...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 pb-20">
-      
-      {/* Top Navigation Bar */}
-      <div className="max-w-[1400px] mx-auto px-6 pt-6 flex items-center justify-between">
-        {/* SILQ Logo with stand-out accent color */}
-        <div className="text-2xl font-black tracking-widest cursor-pointer" onClick={() => navigate("/seller/products")}>
-          <span className="text-gray-900">SI</span>
-          <span className="text-[#F17A5D]">LQ</span>
-        </div>
-      </div>
-
-      {/* Hero Section with Enhanced Shadow & Deep Dark Overlay */}
-      <div className="max-w-[1400px] mx-auto px-6 pt-4">
-        <div className="relative h-[260px] md:h-[340px] w-full rounded-[2rem] overflow-hidden bg-gray-900 flex items-center px-8 md:px-16">
-          {/* Same background image with a heavy darkness configuration */}
-          <img 
-            src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop" 
-            alt="Workspace Interior" 
-            className="absolute inset-0 w-full h-full object-cover brightness-[0.4] contrast-[1.1]"
-          />
-          {/* Direct dark mask overlay layer */}
-          <div className="absolute inset-0 bg-black/25"></div>
-          
-          <div className="relative z-10 max-w-2xl">
-            <h1 className="text-5xl md:text-7xl font-black tracking-tight text-white leading-none mb-4">
-              Dashboard
-            </h1>
-            <p className="text-white/90 text-sm md:text-base font-normal max-w-lg leading-relaxed italic tracking-wide">
-              "Great products don't just sell themselves. They are built with passion, curated with care, and managed with absolute precision."
-            </p>
-          </div>
-        </div>
-
-        {/* Floating Search & Add Action Bar */}
-        <div className="relative -mt-7 z-20 max-w-2xl mx-auto px-4">
-          <div className="bg-white rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.05)] border border-gray-100 p-1.5 flex items-center gap-2">
-            <div className="flex-1 flex items-center px-4 gap-3">
-              <Search size={16} className="text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Search your collection..." 
-                className="w-full bg-transparent border-none outline-none text-sm placeholder:text-gray-400 focus:ring-0"
-              />
-            </div>
-            <button 
-              onClick={() => navigate("/seller/products/create")} 
-              className="bg-black hover:bg-gray-900 text-white text-xs font-bold px-6 py-3 rounded-full flex items-center gap-2 transition-colors"
-            >
-              <Plus size={14} strokeWidth={2.5} /> Add Product
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Full-Width Product Catalog Grid */}
-      <div className="max-w-[1400px] mx-auto px-6 mt-16">
-        <div className="flex items-end justify-between mb-8 border-b border-gray-100 pb-4">
-          {/* Changed text font to an elegant, classic editorial serif style */}
-          <h2 className="text-3xl font-serif italic font-medium text-gray-800 tracking-wide normal-case">
-            My collection
-          </h2>
-          <span className="text-xs font-bold tracking-wider text-gray-400 uppercase pb-1">
-            {products.length} listed {products.length === 1 ? 'item' : 'items'}
-          </span>
+    <div className="min-h-screen bg-[#F7F5F1] p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">My Products</h1>
+          <button
+            onClick={() => navigate("/seller/products/create")}
+            className="bg-[#F5C451] hover:bg-[#f0ba33] text-gray-900 font-semibold px-4 py-2 rounded-lg transition flex items-center gap-2"
+          >
+            <Plus size={16} /> Add Product
+          </button>
         </div>
 
         {products.length === 0 ? (
-          <div className="bg-[#F9F9F9] rounded-[2rem] py-16 text-center border border-gray-100">
-            <p className="text-gray-400 text-sm uppercase tracking-widest font-bold mb-4">Your showroom is empty</p>
-            <button 
-              onClick={() => navigate("/seller/products/create")}
-              className="bg-black text-white text-xs font-bold px-6 py-3 rounded-full hover:bg-gray-800 transition"
-            >
-              Upload Your First Design
-            </button>
+          <div className="bg-white rounded-xl shadow-md p-12 text-center">
+            <p className="text-gray-500 text-lg">No products yet</p>
+            <p className="text-gray-400 text-sm mt-1">Click "Add Product" to create your first product</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-12">
-            {products.map((product) => (
-              <ProductCard key={product._id} product={product} onDelete={handleDelete} />
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product) => {
+              const mainImage = product.mainImage || product.variants?.[0]?.images?.[0];
+              const priceRange = product.priceRange || { min: 0, max: 0 };
+              
+              return (
+                <div key={product._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
+                  <div className="h-48 bg-gray-100">
+                    {mainImage ? (
+                      <img src={mainImage} alt={product.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-800 truncate">{product.title}</h3>
+                    <p className="text-sm text-gray-500">{product.category}</p>
+                    {priceRange.min > 0 && (
+                      <p className="text-lg font-bold text-gray-900 mt-1">₹{priceRange.min}</p>
+                    )}
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => navigate(`/seller/products/edit/${product._id}`)}
+                        className="flex-1 bg-[#F5C451] hover:bg-[#f0ba33] text-gray-900 font-medium py-1.5 rounded transition text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product._id)}
+                        className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-1.5 rounded transition text-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

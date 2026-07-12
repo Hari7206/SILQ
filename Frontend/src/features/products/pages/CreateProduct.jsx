@@ -24,36 +24,35 @@ const CreateProduct = () => {
   };
 
   return (
-  <div className="min-h-screen bg-[#F7F5F1] w-full">
-  
-    <div className="max-w-[1440px] mx-auto px-8 py-8 w-full">
-      <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-        <span>Products</span>
-        <ChevronRight size={12} />
-        <span className="text-gray-600 font-medium">New product</span>
-      </div>
+    <div className="min-h-screen bg-[#F7F5F1] w-full">
+      <div className="max-w-[1440px] mx-auto px-8 py-8 w-full">
+        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
+          <span>Products</span>
+          <ChevronRight size={12} />
+          <span className="text-gray-600 font-medium">New product</span>
+        </div>
 
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center">
-            <Plus size={18} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Create new product</h1>
-            <p className="text-sm text-gray-400">Fill in the details to list it in your store</p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center">
+              <Plus size={18} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Create new product</h1>
+              <p className="text-sm text-gray-400">Fill in the details to list it in your store</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <ProductForm
-        onSubmit={handleSubmit}
-        loading={loading}
-        buttonText="Create product"
-        error={error}
-      />
+        <ProductForm
+          onSubmit={handleSubmit}
+          loading={loading}
+          buttonText="Create product"
+          error={error}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default CreateProduct;

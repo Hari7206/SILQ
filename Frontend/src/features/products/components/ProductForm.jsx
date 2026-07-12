@@ -1,43 +1,85 @@
-import { useState } from "react";
-import {
-  Info,
-  Tag,
-  Ruler,
-  Package,
-  ImagePlus,
-  X,
-  CheckCircle2,
-  Circle,
-  AlertCircle,
-} from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, X, ChevronDown, ChevronUp, Image as ImageIcon, Upload } from "lucide-react";
 
 const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
   const [formData, setFormData] = useState({
     title: initialData?.title || "",
     description: initialData?.description || "",
-    priceAmount: initialData?.price?.amount || "",
-    priceCurrency: initialData?.price?.currency || "INR",
     category: initialData?.category || "",
     subCategory: initialData?.subCategory || "",
     availableSizes: initialData?.availableSizes || [],
-    colors: initialData?.colors?.join(", ") || "",
     fabric: initialData?.fabric || "",
     occasion: initialData?.occasion?.join(", ") || "",
-    stock: initialData?.stock || "",
     isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
+    isFeatured: initialData?.isFeatured || false,
+    badges: {
+      sevenDayReturn: initialData?.badges?.sevenDayReturn || false,
+      cashOnDelivery: initialData?.badges?.cashOnDelivery || false,
+      silkAssured: initialData?.badges?.silkAssured || false,
+      freeShipping: initialData?.badges?.freeShipping || false,
+      authenticProduct: initialData?.badges?.authenticProduct || false,
+    },
+    variants: initialData?.variants || [
+      {
+        color: "",
+        colorCode: "",
+        price: { amount: "", currency: "INR" },
+        stock: "",
+        images: [],
+        sku: "",
+        isActive: true,
+      },
+    ],
   });
 
-  const [images, setImages] = useState([]);
-  const [previews, setPreviews] = useState([]);
+  const [expandedVariant, setExpandedVariant] = useState(0);
+  const [variantImagePreviews, setVariantImagePreviews] = useState({});
+  const [uploadingImages, setUploadingImages] = useState({});
+
+// Add this function
+const uploadToCloudinary = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+
+  try {
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+    const data = await res.json();
+    return data.secure_url;
+  } catch (error) {
+    console.error("Upload failed:", error);
+    return null;
+  }
+};
+
+  const fileInputRefs = useRef({});
 
   const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL"];
   const currencyOptions = ["INR", "USD", "EUR", "GBP"];
+
+  // ========== HANDLERS ==========
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleBadgeChange = (badgeName) => {
+    setFormData((prev) => ({
+      ...prev,
+      badges: {
+        ...prev.badges,
+        [badgeName]: !prev.badges[badgeName],
+      },
     }));
   };
 
@@ -50,347 +92,545 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     }));
   };
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files).slice(0, 5);
-    setImages(files);
-    setPreviews(files.map((f) => URL.createObjectURL(f)));
+
+
+  const handleVariantChange = (index, field, value) => {
+    const newVariants = [...formData.variants];
+    if (field === "priceAmount") {
+      newVariants[index].price.amount = value;
+    } else if (field === "priceCurrency") {
+      newVariants[index].price.currency = value;
+    } else {
+      newVariants[index][field] = value;
+    }
+    setFormData((prev) => ({ ...prev, variants: newVariants }));
   };
 
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
+  const addVariant = () => {
+    setFormData((prev) => ({
+      ...prev,
+      variants: [
+        ...prev.variants,
+        {
+          color: "",
+          colorCode: "",
+          price: { amount: "", currency: "INR" },
+          stock: "",
+          images: [],
+          sku: "",
+          isActive: true,
+        },
+      ],
+    }));
+    setExpandedVariant(formData.variants.length);
   };
 
-  const handleSubmit = (e) => {
+  const removeVariant = (index) => {
+    if (formData.variants.length <= 1) {
+      alert("Product must have at least one variant");
+      return;
+    }
+    const newVariants = formData.variants.filter((_, i) => i !== index);
+    setFormData((prev) => ({ ...prev, variants: newVariants }));
+    if (expandedVariant >= newVariants.length) {
+      setExpandedVariant(newVariants.length - 1);
+    }
+  };
+
+  // ========== VARIANT IMAGE HANDLERS ==========
+
+ const handleVariantImageUpload = async (index, files) => {
+  const fileArray = Array.from(files).slice(0, 5 - formData.variants[index].images.length);
+  
+  if (fileArray.length === 0) return;
+
+  // Show uploading state
+  setUploadingImages((prev) => ({ ...prev, [index]: true }));
+
+  const newVariants = [...formData.variants];
+  const newPreviews = [];
+
+  for (const file of fileArray) {
+    // Create preview
+    const preview = URL.createObjectURL(file);
+    newPreviews.push(preview);
+
+    // Upload to Cloudinary
+    const url = await uploadToCloudinary(file);
+    if (url) {
+      newVariants[index].images.push(url);
+    }
+  }
+
+  // Update previews
+  setVariantImagePreviews((prev) => ({
+    ...prev,
+    [index]: [...(prev[index] || []), ...newPreviews],
+  }));
+
+  setFormData((prev) => ({ ...prev, variants: newVariants }));
+  setUploadingImages((prev) => ({ ...prev, [index]: false }));
+};
+  const removeVariantImage = (variantIndex, imageIndex) => {
+    const newVariants = [...formData.variants];
+    newVariants[variantIndex].images = newVariants[variantIndex].images.filter((_, i) => i !== imageIndex);
+    
+    // Remove preview
+    setVariantImagePreviews((prev) => ({
+      ...prev,
+      [variantIndex]: prev[variantIndex]?.filter((_, i) => i !== imageIndex) || [],
+    }));
+    
+    setFormData((prev) => ({ ...prev, variants: newVariants }));
+  };
+
+  // ========== SUBMIT ==========
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate variants
+    for (const variant of formData.variants) {
+      if (!variant.color || !variant.price.amount || !variant.stock) {
+        alert("Each variant must have color, price, and stock");
+        return;
+      }
+    }
+
     const formDataToSend = new FormData();
 
+    // Add simple fields
     Object.keys(formData).forEach((key) => {
-      if (key === "availableSizes") {
-        formDataToSend.append(key, JSON.stringify(formData[key]));
-      } else if (key === "colors" || key === "occasion") {
-        const value = formData[key]
-          ? JSON.stringify(formData[key].split(",").map((s) => s.trim()).filter(Boolean))
-          : JSON.stringify([]);
+      if (key === "variants" || key === "badges" || key === "availableSizes") return;
+      if (key === "occasion") {
+        const value = formData[key] ? JSON.stringify(formData[key].split(",").map((s) => s.trim()).filter(Boolean)) : JSON.stringify([]);
         formDataToSend.append(key, value);
-      } else if (key === "priceAmount" || key === "stock") {
-        formDataToSend.append(key, String(formData[key]));
       } else {
         formDataToSend.append(key, formData[key]);
       }
     });
 
-    formDataToSend.append("isActive", String(formData.isActive));
+    // Add availableSizes
+    formDataToSend.append("availableSizes", JSON.stringify(formData.availableSizes));
 
-    images.forEach((file) => {
-      formDataToSend.append("images", file);
-    });
+    // Add badges
+    formDataToSend.append("badges", JSON.stringify(formData.badges));
 
-    images.forEach((_, index) => {
-      formDataToSend.append(`altTexts[${index}]`, `${formData.title} - Image ${index + 1}`);
-    });
+    // Add variants (with images as URLs)
+    const variantsToSend = formData.variants.map((v) => ({
+      ...v,
+      price: {
+        amount: parseFloat(v.price.amount),
+        currency: v.price.currency,
+      },
+      stock: parseInt(v.stock),
+      images: v.images || [],
+    }));
+    formDataToSend.append("variants", JSON.stringify(variantsToSend));
 
+    // For now, we'll handle images separately in the parent component
     onSubmit(formDataToSend);
   };
 
-  // Shared field styles
+  // ========== UI ==========
+
   const inputClass =
     "w-full border border-gray-200 bg-gray-50/60 px-3.5 py-2.5 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#F5C451]/40 focus:border-[#F5C451] outline-none transition";
   const labelClass = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 
-  const SectionCard = ({ icon: Icon, title, subtitle, children }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-9 h-9 rounded-lg bg-[#FDF3DC] flex items-center justify-center flex-shrink-0">
-          <Icon size={17} className="text-[#B8860B]" />
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-          {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
-        </div>
-      </div>
-      {children}
-    </div>
-  );
-
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-      {/* Main column */}
-      <div className="lg:col-span-2 space-y-6">
-        {error && (
-          <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
-            <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <SectionCard icon={Info} title="General information" subtitle="Basic details buyers see first">
-          <div className="space-y-4">
-            <div>
-              <label className={labelClass}>Title *</label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                required
-                placeholder="e.g., Handwoven Silk Saree"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Description *</label>
-              <textarea
-                name="description"
-                rows="4"
-                value={formData.description}
-                onChange={handleChange}
-                required
-                placeholder="Describe the product, its craft, and what makes it special."
-                className={`${inputClass} resize-none`}
-              />
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard icon={Tag} title="Pricing & category" subtitle="Where it's priced and listed">
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
-                <label className={labelClass}>Price *</label>
-                <input
-                  type="number"
-                  name="priceAmount"
-                  value={formData.priceAmount}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  placeholder="0.00"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Currency</label>
-                <select
-                  name="priceCurrency"
-                  value={formData.priceCurrency}
-                  onChange={handleChange}
-                  className={inputClass}
-                >
-                  {currencyOptions.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Category *</label>
-                <input
-                  type="text"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  required
-                  placeholder="e.g., Kurtas, Sarees"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Sub category</label>
-                <input
-                  type="text"
-                  name="subCategory"
-                  value={formData.subCategory}
-                  onChange={handleChange}
-                  placeholder="e.g., Men's Wedding Kurtas"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-            <div>
-              <label className={labelClass}>Stock *</label>
-              <input
-                type="number"
-                name="stock"
-                value={formData.stock}
-                onChange={handleChange}
-                required
-                min="0"
-                placeholder="Units available"
-                className={inputClass}
-              />
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard icon={Ruler} title="Variants & attributes" subtitle="Sizes, colors, fabric, and occasion">
-          <div className="space-y-5">
-            <div>
-              <label className={labelClass}>Available sizes</label>
-              <div className="flex flex-wrap gap-2">
-                {sizeOptions.map((size) => {
-                  const active = formData.availableSizes.includes(size);
-                  return (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => handleSizeToggle(size)}
-                      className={`w-11 h-9 rounded-lg text-sm font-medium border transition ${
-                        active
-                          ? "bg-[#F5C451] border-[#F5C451] text-gray-900"
-                          : "bg-gray-50/60 border-gray-200 text-gray-500 hover:border-gray-300"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Colors</label>
-                <input
-                  type="text"
-                  name="colors"
-                  value={formData.colors}
-                  onChange={handleChange}
-                  placeholder="Maroon, Navy Blue"
-                  className={inputClass}
-                />
-                <p className="text-[11px] text-gray-400 mt-1">Comma separated</p>
-              </div>
-              <div>
-                <label className={labelClass}>Fabric</label>
-                <input
-                  type="text"
-                  name="fabric"
-                  value={formData.fabric}
-                  onChange={handleChange}
-                  placeholder="Silk, Cotton, Linen"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>Occasion</label>
-              <input
-                type="text"
-                name="occasion"
-                value={formData.occasion}
-                onChange={handleChange}
-                placeholder="Wedding, Festival, Party"
-                className={inputClass}
-              />
-              <p className="text-[11px] text-gray-400 mt-1">Comma separated</p>
-            </div>
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* Sidebar */}
-      <div className="space-y-6 lg:sticky lg:top-6">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Status</h3>
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setFormData((prev) => ({ ...prev, isActive: true }))}
-              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-left transition ${
-                formData.isActive
-                  ? "border-[#F5C451] bg-[#FDF7E8]"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <div>
-                <p className="text-sm font-medium text-gray-900">Active</p>
-                <p className="text-xs text-gray-400">Visible to buyers immediately</p>
-              </div>
-              {formData.isActive ? (
-                <CheckCircle2 size={18} className="text-[#B8860B] flex-shrink-0" />
-              ) : (
-                <Circle size={18} className="text-gray-300 flex-shrink-0" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormData((prev) => ({ ...prev, isActive: false }))}
-              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-left transition ${
-                !formData.isActive
-                  ? "border-[#F5C451] bg-[#FDF7E8]"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <div>
-                <p className="text-sm font-medium text-gray-900">Draft</p>
-                <p className="text-xs text-gray-400">Keep it hidden until you're ready</p>
-              </div>
-              {!formData.isActive ? (
-                <CheckCircle2 size={18} className="text-[#B8860B] flex-shrink-0" />
-              ) : (
-                <Circle size={18} className="text-gray-300 flex-shrink-0" />
-              )}
-            </button>
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-4 rounded-xl">
+          {error}
         </div>
+      )}
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-lg bg-[#FDF3DC] flex items-center justify-center flex-shrink-0">
-              <ImagePlus size={17} className="text-[#B8860B]" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">Product images</h3>
-              <p className="text-xs text-gray-400">Up to 5 images</p>
-            </div>
-          </div>
-
-          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-8 cursor-pointer hover:border-[#F5C451] hover:bg-[#FDF7E8]/40 transition">
-            <ImagePlus size={22} className="text-gray-300" />
-            <span className="text-xs text-gray-400 text-center px-4">
-              Click to upload JPEG or PNG files
-            </span>
+      {/* ====== GENERAL INFORMATION ====== */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">General Information</h3>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>Title *</label>
             <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageChange}
-              className="hidden"
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              required
+              placeholder="e.g., Premium Silk Kurta"
+              className={inputClass}
             />
-          </label>
+          </div>
+          <div>
+            <label className={labelClass}>Description *</label>
+            <textarea
+              name="description"
+              rows="4"
+              value={formData.description}
+              onChange={handleChange}
+              required
+              placeholder="Describe your product in detail..."
+              className={`${inputClass} resize-none`}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Category *</label>
+            <input
+              type="text"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              required
+              placeholder="e.g., Kurtas, Sarees, Sherwanis"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Sub Category</label>
+            <input
+              type="text"
+              name="subCategory"
+              value={formData.subCategory}
+              onChange={handleChange}
+              placeholder="e.g., Men's Wedding Kurtas"
+              className={inputClass}
+            />
+          </div>
+        </div>
+      </div>
 
-          {previews.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mt-4">
-              {previews.map((src, i) => (
-                <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-100">
-                  <img src={src} alt="" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* ====== VARIANTS (Color + Price + Stock + Images) ====== */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-900">Variants (Color, Price, Stock) *</h3>
+          <button
+            type="button"
+            onClick={addVariant}
+            className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition"
+          >
+            <Plus size={14} /> Add Variant
+          </button>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-[#F5C451] hover:bg-[#f0ba33] text-gray-900 font-semibold text-sm py-3.5 rounded-xl transition disabled:opacity-50 shadow-sm"
-        >
-          <Package size={16} />
-          {loading ? "Processing..." : buttonText}
-        </button>
+        {formData.variants.map((variant, index) => (
+          <div
+            key={index}
+            className={`border rounded-xl p-4 mb-3 transition ${index === expandedVariant ? "border-indigo-300 bg-indigo-50/30" : "border-gray-200"}`}
+          >
+            {/* Variant Header */}
+            <div
+              className="flex items-center justify-between cursor-pointer"
+              onClick={() => setExpandedVariant(index === expandedVariant ? -1 : index)}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-700">
+                  Variant {index + 1}
+                </span>
+                {variant.color && (
+                  <span className="inline-flex items-center gap-1.5 text-xs bg-gray-100 px-2.5 py-0.5 rounded-full text-gray-700">
+                    <span
+                      className="w-3 h-3 rounded-full border border-gray-300"
+                      style={{ backgroundColor: variant.colorCode || "#ccc" }}
+                    />
+                    {variant.color}
+                  </span>
+                )}
+                {variant.price.amount && (
+                  <span className="text-xs text-gray-500">₹{variant.price.amount}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeVariant(index);
+                  }}
+                  className="text-gray-400 hover:text-red-500 transition"
+                >
+                  <X size={16} />
+                </button>
+                {index === expandedVariant ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </div>
+            </div>
+
+            {/* Variant Body */}
+            {index === expandedVariant && (
+              <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Color Name *</label>
+                    <input
+                      type="text"
+                      value={variant.color}
+                      onChange={(e) => handleVariantChange(index, "color", e.target.value)}
+                      placeholder="e.g., Maroon"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Color Code</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={variant.colorCode}
+                        onChange={(e) => handleVariantChange(index, "colorCode", e.target.value)}
+                        placeholder="#800000"
+                        className={inputClass}
+                      />
+                      {variant.colorCode && (
+                        <span
+                          className="w-8 h-8 rounded-lg border border-gray-200 flex-shrink-0"
+                          style={{ backgroundColor: variant.colorCode }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Price *</label>
+                    <input
+                      type="number"
+                      value={variant.price.amount}
+                      onChange={(e) => handleVariantChange(index, "priceAmount", e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Currency</label>
+                    <select
+                      value={variant.price.currency}
+                      onChange={(e) => handleVariantChange(index, "priceCurrency", e.target.value)}
+                      className={inputClass}
+                    >
+                      {currencyOptions.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Stock *</label>
+                    <input
+                      type="number"
+                      value={variant.stock}
+                      onChange={(e) => handleVariantChange(index, "stock", e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">SKU (Optional)</label>
+                    <input
+                      type="text"
+                      value={variant.sku || ""}
+                      onChange={(e) => handleVariantChange(index, "sku", e.target.value)}
+                      placeholder="SKU-001"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                {/* ✅ PER-VARIANT IMAGE UPLOAD */}
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Images (max 5)</label>
+                  <div className="mt-2">
+                    {/* Image previews */}
+                    {variant.images.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {variant.images.map((img, imgIndex) => (
+                          <div key={imgIndex} className="relative group">
+                            <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                              {variantImagePreviews[index]?.[imgIndex] ? (
+                                <img
+                                  src={variantImagePreviews[index][imgIndex]}
+                                  alt={`${variant.color} - ${imgIndex + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                  <ImageIcon size={20} />
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeVariantImage(index, imgIndex)}
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition shadow-md"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+{/* Upload button */}
+{variant.images.length < 5 && (
+  <label className={`flex items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer transition ${
+    uploadingImages[index] 
+      ? "border-indigo-300 bg-indigo-50/40" 
+      : "border-gray-200 hover:border-[#F5C451] hover:bg-[#FDF7E8]/40"
+  }`}>
+    <div className="flex flex-col items-center gap-1">
+      {uploadingImages[index] ? (
+        <>
+          <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-xs text-indigo-500">Uploading...</span>
+        </>
+      ) : (
+        <>
+          <Upload size={16} className="text-gray-400" />
+          <span className="text-xs text-gray-400">Upload image</span>
+        </>
+      )}
+    </div>
+    <input
+      type="file"
+      accept="image/*"
+      multiple
+      className="hidden"
+      disabled={uploadingImages[index]}
+      onChange={(e) => {
+        if (e.target.files.length > 0) {
+          handleVariantImageUpload(index, e.target.files);
+        }
+        e.target.value = "";
+      }}
+    />
+  </label>
+)}
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      {variant.images.length}/5 images
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
+
+      {/* ====== SIZES ====== */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Available Sizes</h3>
+        <div className="flex flex-wrap gap-2">
+          {sizeOptions.map((size) => {
+            const active = formData.availableSizes.includes(size);
+            return (
+              <button
+                key={size}
+                type="button"
+                onClick={() => handleSizeToggle(size)}
+                className={`w-11 h-9 rounded-lg text-sm font-medium border transition ${
+                  active
+                    ? "bg-[#F5C451] border-[#F5C451] text-gray-900"
+                    : "bg-gray-50/60 border-gray-200 text-gray-500 hover:border-gray-300"
+                }`}
+              >
+                {size}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ====== ADDITIONAL DETAILS ====== */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Additional Details</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Fabric</label>
+            <input
+              type="text"
+              name="fabric"
+              value={formData.fabric}
+              onChange={handleChange}
+              placeholder="e.g., Silk, Cotton"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Occasion</label>
+            <input
+              type="text"
+              name="occasion"
+              value={formData.occasion}
+              onChange={handleChange}
+              placeholder="Wedding, Festival, Party"
+              className={inputClass}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ====== TRUST BADGES ====== */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Trust Badges</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { key: "sevenDayReturn", label: "7-Day Return" },
+            { key: "cashOnDelivery", label: "Cash on Delivery" },
+            { key: "silkAssured", label: "Silk Assured" },
+            { key: "freeShipping", label: "Free Shipping" },
+            { key: "authenticProduct", label: "Authentic Product" },
+          ].map((badge) => (
+            <label key={badge.key} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.badges[badge.key]}
+                onChange={() => handleBadgeChange(badge.key)}
+                className="accent-[#F5C451] w-4 h-4"
+              />
+              {badge.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* ====== STATUS & FEATURED ====== */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Status</h3>
+        <div className="flex flex-wrap gap-6">
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              name="isActive"
+              checked={formData.isActive}
+              onChange={handleChange}
+              className="accent-[#F5C451] w-4 h-4"
+            />
+            Product is Active
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              name="isFeatured"
+              checked={formData.isFeatured}
+              onChange={handleChange}
+              className="accent-[#F5C451] w-4 h-4"
+            />
+            Featured Product
+          </label>
+        </div>
+      </div>
+
+      {/* ====== SUBMIT ====== */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-[#F5C451] hover:bg-[#f0ba33] text-gray-900 font-semibold py-3.5 rounded-xl transition disabled:opacity-50"
+      >
+        {loading ? "Processing..." : buttonText}
+      </button>
     </form>
   );
 };

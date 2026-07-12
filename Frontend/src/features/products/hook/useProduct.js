@@ -1,14 +1,73 @@
 import { useDispatch, useSelector } from "react-redux";
+<<<<<<< HEAD
 import { setLoading, setError, setProducts, setProduct, addProduct, updateProduct, removeProduct, clearSuccess, resetProduct } from "../state/product.slice";
 import { getProducts as getProductsAPI, getProductById as getProductByIdAPI, createProduct as createProductAPI, updateProduct as updateProductAPI, deleteProduct as deleteProductAPI, addProductImages as addProductImagesAPI, removeProductImage as removeProductImageAPI  , getPublicProducts as getPublicProductsAPI,        // ← NEW
   getPublicProductById as getPublicProductByIdAPI, } from "../service/product.api";
 
 
 
+=======
+import {
+  setLoading,
+  setError,
+  setProducts,
+  setProduct,
+  addProduct,
+  updateProduct,
+  removeProduct,
+  clearSuccess,
+  resetProduct,
+} from "../state/product.slice";
+import {
+  getProducts as getProductsAPI,
+  getProductById as getProductByIdAPI,
+  createProduct as createProductAPI,
+  updateProduct as updateProductAPI,
+  deleteProduct as deleteProductAPI,
+  addProductImages as addProductImagesAPI,
+  removeProductImage as removeProductImageAPI,
+  getPublicProducts as getPublicProductsAPI,
+  getPublicProductById as getPublicProductByIdAPI,
+} from "../service/product.api";
+>>>>>>> 82f10fe (varient added)
 
 export const useProduct = () => {
   const dispatch = useDispatch();
-  const { products, product, loading, error, success } = useSelector((state) => state.products);
+  const { products, product, loading, error, success } = useSelector(
+    (state) => state.products
+  );
+
+  // ============ PUBLIC APIs ============
+
+  const fetchPublicProducts = async () => {
+    try {
+      dispatch(setLoading(true));
+      const data = await getPublicProductsAPI();
+      dispatch(setProducts(data.products));
+      dispatch(setLoading(false));
+      return data;
+    } catch (error) {
+      dispatch(setError(error.response?.data?.message || "Failed to fetch products"));
+      dispatch(setLoading(false));
+      throw error;
+    }
+  };
+
+  const fetchPublicProductById = async (id) => {
+    try {
+      dispatch(setLoading(true));
+      const data = await getPublicProductByIdAPI(id);
+      dispatch(setProduct(data.product));
+      dispatch(setLoading(false));
+      return data;
+    } catch (error) {
+      dispatch(setError(error.response?.data?.message || "Failed to fetch product"));
+      dispatch(setLoading(false));
+      throw error;
+    }
+  };
+
+  // ============ PROTECTED APIs (Seller only) ============
 
 
     const fetchPublicProducts = async () => {
@@ -39,9 +98,11 @@ export const useProduct = () => {
       dispatch(setLoading(true));
       const data = await getProductsAPI();
       dispatch(setProducts(data.products));
+      dispatch(setLoading(false));
       return data;
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to fetch products"));
+      dispatch(setLoading(false));
       throw error;
     }
   };
@@ -51,9 +112,11 @@ export const useProduct = () => {
       dispatch(setLoading(true));
       const data = await getProductByIdAPI(id);
       dispatch(setProduct(data.product));
+      dispatch(setLoading(false));
       return data;
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to fetch product"));
+      dispatch(setLoading(false));
       throw error;
     }
   };
@@ -63,9 +126,11 @@ export const useProduct = () => {
       dispatch(setLoading(true));
       const data = await createProductAPI(formData);
       dispatch(addProduct(data.product));
+      dispatch(setLoading(false));
       return data;
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to create product"));
+      dispatch(setLoading(false));
       throw error;
     }
   };
@@ -75,9 +140,11 @@ export const useProduct = () => {
       dispatch(setLoading(true));
       const data = await updateProductAPI(id, formData);
       dispatch(updateProduct(data.product));
+      dispatch(setLoading(false));
       return data;
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to update product"));
+      dispatch(setLoading(false));
       throw error;
     }
   };
@@ -87,9 +154,11 @@ export const useProduct = () => {
       dispatch(setLoading(true));
       await deleteProductAPI(id);
       dispatch(removeProduct(id));
+      dispatch(setLoading(false));
       return { success: true };
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to delete product"));
+      dispatch(setLoading(false));
       throw error;
     }
   };
@@ -99,9 +168,11 @@ export const useProduct = () => {
       dispatch(setLoading(true));
       const data = await addProductImagesAPI(id, formData);
       dispatch(updateProduct(data.product));
+      dispatch(setLoading(false));
       return data;
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to add images"));
+      dispatch(setLoading(false));
       throw error;
     }
   };
@@ -111,9 +182,11 @@ export const useProduct = () => {
       dispatch(setLoading(true));
       const data = await removeProductImageAPI(id, imageUrl);
       dispatch(updateProduct(data.product));
+      dispatch(setLoading(false));
       return data;
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to remove image"));
+      dispatch(setLoading(false));
       throw error;
     }
   };
@@ -127,9 +200,36 @@ export const useProduct = () => {
   };
 
   const clearProductError = () => {
-  
+    // dispatch(clearError());
   };
 
+<<<<<<< HEAD
   return { products, product, loading, error, success, fetchProducts, fetchProductById, createNewProduct, updateExistingProduct, deleteExistingProduct, addMoreImages, removeImage, clearProductSuccess, resetProductState, clearProductError , fetchPublicProducts,
     fetchPublicProductById,};
+=======
+  return {
+    // State
+    products,
+    product,
+    loading,
+    error,
+    success,
+
+    // Public APIs
+    fetchPublicProducts,
+    fetchPublicProductById,
+
+    // Protected APIs
+    fetchProducts,
+    fetchProductById,
+    createNewProduct,
+    updateExistingProduct,
+    deleteExistingProduct,
+    addMoreImages,
+    removeImage,
+    clearProductSuccess,
+    resetProductState,
+    clearProductError,
+  };
+>>>>>>> 82f10fe (varient added)
 };
