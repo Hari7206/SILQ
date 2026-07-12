@@ -1,7 +1,20 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
-import { ChevronLeft, ChevronRight, ShoppingBag, Heart, RotateCcw, Wallet, Sparkles, Truck, ShieldCheck } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ShoppingBag,
+  Heart,
+  RotateCcw,
+  Wallet,
+  Sparkles,
+  Truck,
+  ShieldCheck,
+  ZoomIn,
+} from "lucide-react";
+
+const TABS = ["Details", "Shipping & Returns"];
 
 const PublicProductDetail = () => {
   const { id } = useParams();
@@ -9,6 +22,7 @@ const PublicProductDetail = () => {
   const { fetchPublicProductById, product, loading } = useProduct();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [activeTab, setActiveTab] = useState(TABS[0]);
 
   useEffect(() => {
     fetchPublicProductById(id);
@@ -66,10 +80,11 @@ const PublicProductDetail = () => {
   const currentImage = images[currentImageIndex] || product.mainImage || images[0];
   const priceRange = product.priceRange || { min: 0, max: 0 };
   const hasPriceRange = priceRange.min !== priceRange.max;
+  const hasBadges = Object.values(product.badges || {}).some((v) => v === true);
 
   return (
     <div className="min-h-screen bg-[#FBF4E8]">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Back Button */}
         <button
           onClick={() => navigate("/")}
@@ -79,92 +94,129 @@ const PublicProductDetail = () => {
           Back to products
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Left - Image Gallery */}
-          <div>
-            <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden aspect-square">
+        <div className="grid grid-cols-1 lg:grid-cols-[88px_1fr_1fr] gap-6">
+          {/* Thumbnail rail */}
+          {images.length > 1 && (
+            <div className="hidden lg:flex flex-col gap-3 order-1">
+              {images.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`w-[72px] h-[72px] rounded-xl overflow-hidden border-2 transition flex-shrink-0 bg-white ${
+                    currentImageIndex === index
+                      ? "border-gray-900"
+                      : "border-gray-200 hover:border-gray-400"
+                  }`}
+                >
+                  <img
+                    src={img}
+                    alt={`${product.title} ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Main image */}
+          <div className="order-2">
+            <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden aspect-[4/5]">
               {currentImage ? (
-                <img src={currentImage} alt={product.title} className="w-full h-full object-contain p-4" />
+                <img src={currentImage} alt={product.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
               )}
 
               {images.length > 1 && (
                 <>
-                  <button onClick={prevImage} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition">
-                    <ChevronLeft size={20} />
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition"
+                  >
+                    <ChevronLeft size={18} />
                   </button>
-                  <button onClick={nextImage} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition">
-                    <ChevronRight size={20} />
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition"
+                  >
+                    <ChevronRight size={18} />
                   </button>
                 </>
               )}
 
+              <button className="absolute right-4 bottom-4 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition">
+                <ZoomIn size={18} className="text-gray-700" />
+              </button>
+
               {images.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                <div className="absolute bottom-4 left-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
                   {currentImageIndex + 1} / {images.length}
                 </div>
               )}
             </div>
 
-            {/* Thumbnails */}
+            {/* Mobile thumbnails */}
             {images.length > 1 && (
-              <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+              <div className="flex lg:hidden gap-3 mt-4 overflow-x-auto pb-2">
                 {images.map((img, index) => (
-                  <div
+                  <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden cursor-pointer border-2 transition flex-shrink-0 ${
-                      currentImageIndex === index ? "border-[#F5C451]" : "border-transparent hover:border-gray-300"
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 ${
+                      currentImageIndex === index ? "border-gray-900" : "border-transparent"
                     }`}
                   >
-                    <img src={img} alt={`${product.title} - ${index + 1}`} className="w-full h-full object-cover" />
-                  </div>
+                    <img src={img} alt={`${product.title} ${index + 1}`} className="w-full h-full object-cover" />
+                  </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Right - Product Info */}
-          <div className="space-y-6">
-            {/* Title & Category */}
+          {/* Info column */}
+          <div className="order-3 space-y-6">
             <div>
-              <span className="inline-block bg-[#FDF3DC] text-[#B8860B] text-xs font-medium px-3 py-1 rounded-full">
-                {product.category}
-              </span>
-              {product.subCategory && (
-                <span className="inline-block bg-gray-100 text-gray-500 text-xs font-medium px-3 py-1 rounded-full ml-2">
-                  {product.subCategory}
+              <div className="flex items-center gap-2">
+                <span className="inline-block bg-[#FDF3DC] text-[#B8860B] text-xs font-medium px-3 py-1 rounded-full">
+                  {product.category}
                 </span>
-              )}
-              <h1 className="text-3xl font-bold text-gray-900 mt-3">{product.title}</h1>
+                {product.subCategory && (
+                  <span className="inline-block bg-gray-100 text-gray-500 text-xs font-medium px-3 py-1 rounded-full">
+                    {product.subCategory}
+                  </span>
+                )}
+              </div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mt-3 leading-tight">
+                {product.title}
+              </h1>
               <p className="text-sm text-gray-500 mt-1">by {product.seller?.fullname || "SILQ"}</p>
             </div>
 
-            {/* Price */}
-            <div>
+            <div className="flex items-baseline gap-2">
               {hasPriceRange ? (
-                <div>
+                <>
                   <span className="text-3xl font-bold text-gray-900">₹{priceRange.min}</span>
-                  <span className="text-gray-400 text-2xl mx-2">-</span>
+                  <span className="text-gray-400 text-xl">–</span>
                   <span className="text-3xl font-bold text-gray-900">₹{priceRange.max}</span>
-                </div>
+                </>
               ) : (
                 <span className="text-3xl font-bold text-gray-900">₹{priceRange.min}</span>
               )}
-              <span className="text-sm text-gray-400 ml-2">INR</span>
-              {selectedVariant && hasPriceRange && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Selected: <span className="font-semibold">₹{selectedVariant.price.amount}</span>
-                </p>
-              )}
+              <span className="text-sm text-gray-400">INR</span>
             </div>
+            {selectedVariant && hasPriceRange && (
+              <p className="text-sm text-gray-500 -mt-4">
+                Selected: <span className="font-semibold text-gray-700">₹{selectedVariant.price.amount}</span>
+              </p>
+            )}
+
+            <hr className="border-gray-200" />
 
             {/* Color Variants */}
             {product.variants?.length > 1 && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                  Color: <span className="font-normal">{selectedVariant?.color || "Select"}</span>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                  Color: <span className="font-normal text-gray-500">{selectedVariant?.color || "Select"}</span>
                 </h3>
                 <div className="flex flex-wrap gap-3">
                   {product.variants.map((variant, index) => {
@@ -173,18 +225,15 @@ const PublicProductDetail = () => {
                       <button
                         key={index}
                         onClick={() => handleVariantSelect(variant)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition ${
-                          isSelected
-                            ? "border-[#F5C451] bg-[#FDF7E8] ring-2 ring-[#F5C451]/30"
-                            : "border-gray-200 hover:border-gray-300"
+                        title={variant.color}
+                        className={`w-9 h-9 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${
+                          isSelected ? "border-gray-900" : "border-transparent hover:border-gray-300"
                         }`}
                       >
                         <span
-                          className="w-6 h-6 rounded-full border border-gray-300 flex-shrink-0"
+                          className="w-7 h-7 rounded-full border border-gray-200"
                           style={{ backgroundColor: variant.colorCode || "#ccc" }}
                         />
-                        <span className="text-sm font-medium text-gray-700">{variant.color}</span>
-                        {isSelected && <span className="text-xs text-[#B8860B]">✓</span>}
                       </button>
                     );
                   })}
@@ -195,12 +244,20 @@ const PublicProductDetail = () => {
             {/* Sizes */}
             {product.availableSizes?.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Size</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    Size: <span className="font-normal text-gray-500">M</span>
+                  </h3>
+                  <span className="text-xs text-gray-400 underline cursor-pointer">Size Guide</span>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {product.availableSizes.map((size) => (
-                    <span key={size} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white hover:border-[#F5C451] cursor-pointer transition">
+                    <button
+                      key={size}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:border-gray-900 transition"
+                    >
                       {size}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -208,46 +265,20 @@ const PublicProductDetail = () => {
 
             {/* Stock */}
             <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium ${selectedVariant?.stock > 0 ? "text-green-600" : "text-red-500"}`}>
+              <span
+                className={`text-sm font-medium ${
+                  selectedVariant?.stock > 0 ? "text-green-600" : "text-red-500"
+                }`}
+              >
                 {selectedVariant?.stock > 0 ? `In Stock (${selectedVariant.stock})` : "Out of Stock"}
               </span>
             </div>
 
-            {/* Description */}
-            <div>
-              <h3 className="font-semibold text-gray-800 mb-2">Description</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
-            </div>
-
-            {/* Trust Badges */}
-            {Object.values(product.badges || {}).some(v => v === true) && (
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Why choose this</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {product.badges?.sevenDayReturn && (
-                    <span className="flex items-center gap-2 text-sm text-gray-700"><RotateCcw size={14} className="text-green-600" /> 7-Day Return</span>
-                  )}
-                  {product.badges?.cashOnDelivery && (
-                    <span className="flex items-center gap-2 text-sm text-gray-700"><Wallet size={14} className="text-blue-600" /> Cash on Delivery</span>
-                  )}
-                  {product.badges?.silkAssured && (
-                    <span className="flex items-center gap-2 text-sm text-gray-700"><Sparkles size={14} className="text-purple-600" /> Silk Assured</span>
-                  )}
-                  {product.badges?.freeShipping && (
-                    <span className="flex items-center gap-2 text-sm text-gray-700"><Truck size={14} className="text-emerald-600" /> Free Shipping</span>
-                  )}
-                  {product.badges?.authenticProduct && (
-                    <span className="flex items-center gap-2 text-sm text-gray-700"><ShieldCheck size={14} className="text-indigo-600" /> Authentic</span>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Action Buttons */}
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-3 pt-2">
               <button
                 disabled={selectedVariant?.stock === 0}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#F5C451] hover:bg-[#f0ba33] text-gray-900 font-semibold px-6 py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-semibold px-6 py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 <ShoppingBag size={18} />
                 Add to Cart
@@ -256,7 +287,80 @@ const PublicProductDetail = () => {
                 <Heart size={20} className="text-gray-500" />
               </button>
             </div>
+
+            {/* Trust Badges - inline row */}
+            {hasBadges && (
+              <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-500 pt-1">
+                {product.badges?.freeShipping && (
+                  <span className="flex items-center gap-1.5">
+                    <Truck size={14} /> Free Shipping
+                  </span>
+                )}
+                {product.badges?.sevenDayReturn && (
+                  <span className="flex items-center gap-1.5">
+                    <RotateCcw size={14} /> Easy Returns
+                  </span>
+                )}
+                {product.badges?.authenticProduct && (
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck size={14} /> Secure Payment
+                  </span>
+                )}
+                {product.badges?.cashOnDelivery && (
+                  <span className="flex items-center gap-1.5">
+                    <Wallet size={14} /> Cash on Delivery
+                  </span>
+                )}
+                {product.badges?.silkAssured && (
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles size={14} /> Silk Assured
+                  </span>
+                )}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Tabs section */}
+        <div className="mt-14 grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div>
+            <div className="flex gap-6 border-b border-gray-200">
+              {TABS.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`pb-3 text-sm font-medium transition border-b-2 -mb-px ${
+                    activeTab === tab
+                      ? "border-gray-900 text-gray-900"
+                      : "border-transparent text-gray-400 hover:text-gray-600"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="pt-5">
+              {activeTab === "Details" && (
+                <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
+              )}
+              {activeTab === "Shipping & Returns" && (
+                <ul className="text-gray-600 text-sm leading-relaxed space-y-2">
+                  {product.badges?.freeShipping && <li>Free shipping on this item.</li>}
+                  {product.badges?.sevenDayReturn && <li>7-day return policy.</li>}
+                  {product.badges?.cashOnDelivery && <li>Cash on delivery available.</li>}
+                  {!hasBadges && <li>Shipping and return details will be shown here.</li>}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* Secondary banner image */}
+          {images[1] && (
+            <div className="rounded-2xl overflow-hidden bg-gray-900 aspect-[4/3] hidden lg:block">
+              <img src={images[1]} alt="" className="w-full h-full object-cover opacity-90" />
+            </div>
+          )}
         </div>
       </div>
     </div>

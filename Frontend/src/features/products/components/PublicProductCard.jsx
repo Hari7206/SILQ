@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 const PublicProductCard = ({ product }) => {
   const navigate = useNavigate();
 
+  // Pure unaltered logic computations
   const mainImage = product.mainImage || product.variants?.[0]?.images?.[0];
   const priceRange = product.priceRange || { min: 0, max: 0 };
   const hasPriceRange = priceRange.min !== priceRange.max;
@@ -15,86 +16,94 @@ const PublicProductCard = ({ product }) => {
   return (
     <div
       onClick={handleClick}
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#F5C451] transition-all cursor-pointer group"
+      className="bg-white rounded-[2rem] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col w-full transition-all duration-300 hover:shadow-[0_16px_35px_rgba(0,0,0,0.06)] hover:border-gray-200 cursor-pointer group"
     >
-      {/* Image */}
-      <div className="h-64 bg-gray-100 relative overflow-hidden">
+      {/* Aspect-Ratio Guarded Image Container */}
+      <div className="relative aspect-square w-full rounded-[1.5rem] overflow-hidden mb-4 bg-[#F5F5F5]">
         {mainImage ? (
           <img
             src={mainImage}
             alt={product.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
+          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs font-bold uppercase tracking-wider">
             No image
           </div>
         )}
+        
+        {/* Absolute Floating UI Elements */}
         {totalStock === 0 && (
-          <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+          <span className="absolute top-3 left-3 bg-black/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-wider uppercase shadow-sm">
             Out of Stock
           </span>
         )}
         {product.isFeatured && (
-          <span className="absolute top-3 right-3 bg-[#F5C451] text-gray-900 text-xs font-medium px-3 py-1 rounded-full">
+          <span className="absolute top-3 right-3 bg-[#F5C451] text-gray-900 text-[10px] font-bold px-3 py-1 rounded-full tracking-wide shadow-sm">
             Featured
           </span>
         )}
       </div>
 
-      {/* Details */}
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-800 text-lg truncate">{product.title}</h3>
-        <p className="text-sm text-gray-500 mt-1">{product.category}</p>
+      {/* Typography & Details Block */}
+      <div className="flex flex-col flex-1 px-1">
+        <h3 className="font-bold text-gray-900 text-base tracking-tight mb-0.5 truncate">
+          {product.title}
+        </h3>
+        <p className="text-xs text-gray-400 font-medium mb-3">
+          {product.category || "General Collection"}
+        </p>
 
-        {/* Price */}
-        <div className="flex items-center justify-between mt-2">
-          <div>
+        {/* Price & Variant Row */}
+        <div className="flex items-center justify-between mt-auto pt-1">
+          <div className="flex items-baseline gap-1">
             {hasPriceRange ? (
-              <div>
-                <span className="text-lg font-bold text-gray-900">₹{priceRange.min}</span>
-                <span className="text-gray-400 mx-1">-</span>
-                <span className="text-lg font-bold text-gray-900">₹{priceRange.max}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-base font-black text-gray-900">₹{priceRange.min}</span>
+                <span className="text-gray-300 text-xs font-normal">-</span>
+                <span className="text-base font-black text-gray-900">₹{priceRange.max}</span>
               </div>
             ) : (
-              <span className="text-lg font-bold text-gray-900">₹{priceRange.min}</span>
+              <span className="text-base font-black text-gray-900">₹{priceRange.min}</span>
             )}
-            <span className="text-xs text-gray-400 ml-1">INR</span>
+            <span className="text-[10px] font-bold text-gray-400 tracking-wider ml-0.5">INR</span>
           </div>
 
-          {/* Color dots */}
+          {/* Minimalist Micro Color Variant Indicator Ring */}
           {product.variants?.length > 1 && (
-            <div className="flex gap-1">
+            <div className="flex items-center -space-x-1.5 dynamic-swatches">
               {product.variants.slice(0, 4).map((variant, index) => (
                 <span
                   key={index}
-                  className="w-5 h-5 rounded-full border border-gray-200"
+                  className="w-4 h-4 rounded-full border-2 border-white shadow-[0_0_10px_rgba(0,0,0,0.04)] block shrink-0"
                   style={{ backgroundColor: variant.colorCode || "#ccc" }}
                 />
               ))}
               {product.variants.length > 4 && (
-                <span className="text-xs text-gray-400 mt-1">+{product.variants.length - 4}</span>
+                <span className="text-[10px] font-bold text-gray-400 pl-2 bg-white shrink-0 z-10">
+                  +{product.variants.length - 4}
+                </span>
               )}
             </div>
           )}
         </div>
 
-        {/* Trust Badges */}
+        {/* Editorial Trust Curated Badges */}
         {Object.values(product.badges || {}).some(v => v === true) && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
+          <div className="flex flex-wrap gap-1.5 mt-4 pt-3 border-t border-gray-50">
             {product.badges?.sevenDayReturn && (
-              <span className="text-[10px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
-                🔄 7-Day Return
+              <span className="text-[10px] font-semibold bg-gray-50 text-gray-700 px-2.5 py-1 rounded-full border border-gray-100/80 tracking-tight flex items-center gap-1">
+                <span className="text-xs scale-90">🔄</span> 7-Day Return
               </span>
             )}
             {product.badges?.cashOnDelivery && (
-              <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
-                💰 COD
+              <span className="text-[10px] font-semibold bg-gray-50 text-gray-700 px-2.5 py-1 rounded-full border border-gray-100/80 tracking-tight flex items-center gap-1">
+                <span className="text-xs scale-90">💰</span> COD
               </span>
             )}
             {product.badges?.silkAssured && (
-              <span className="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
-                ✨ Silk Assured
+              <span className="text-[10px] font-bold bg-[#FFFBF0] text-[#DCA216] px-2.5 py-1 rounded-full border border-[#FBEFCD] tracking-tight flex items-center gap-1">
+                <span className="text-xs scale-90">✨</span> Silk Assured
               </span>
             )}
           </div>
