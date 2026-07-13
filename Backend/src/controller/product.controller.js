@@ -137,10 +137,17 @@ export const getProducts = async (req, res) => {
   try {
     const products = await productModel.find({ seller: req.user._id });
 
+  
+    const productsWithVirtuals = products.map((p) => ({
+      ...p.toObject(),
+      priceRange: p.priceRange,
+      totalStock: p.totalStock,
+    }));
+
     res.status(200).json({
       success: true,
-      count: products.length,
-      products,
+      count: productsWithVirtuals.length,
+      products: productsWithVirtuals,
     });
   } catch (error) {
     console.error("Get products error:", error);
