@@ -15,6 +15,11 @@ import PublicProductDetail from "../features/products/pages/PublicProductDetail"
 import SellerProducts from "../features/products/pages/SellerProducts";
 import CreateProduct from "../features/products/pages/CreateProduct";
 import EditProduct from "../features/products/pages/EditProduct";
+// Add import
+import Cart from "../features/cart/pages/Cart";
+
+// Add route
+
 
 const AppRoutes = () => {
   const { checkAuth } = useAuth();
@@ -62,6 +67,7 @@ const AppRoutes = () => {
       />
 
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/cart" element={<Cart />} />
     </Routes>
   );
 };

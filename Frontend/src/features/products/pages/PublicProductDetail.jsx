@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
+import { useCart } from "../../cart/hook/useCart";
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,12 +18,14 @@ import {
 const TABS = ["Details", "Shipping & Returns"];
 
 const PublicProductDetail = () => {
-  const [selectedSize, setSelectedSize] = useState(null);
   const { id } = useParams();
   const navigate = useNavigate();
   const { fetchPublicProductById, product, loading } = useProduct();
+  const { addToCart, loading: cartLoading } = useCart();
+  
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [activeTab, setActiveTab] = useState(TABS[0]);
 
   useEffect(() => {
@@ -51,6 +54,39 @@ const PublicProductDetail = () => {
   const handleVariantSelect = (variant) => {
     setSelectedVariant(variant);
     setCurrentImageIndex(0);
+  };
+
+  const handleAddToCart = async () => {
+    if (!selectedVariant) {
+      alert("Please select a color");
+      return;
+    }
+
+    if (!selectedSize) {
+      alert("Please select a size");
+      return;
+    }
+
+    if (selectedVariant.stock === 0) {
+      alert("This product is out of stock");
+      return;
+    }
+
+    try {
+      await addToCart({
+        productId: product._id,
+        variantId: selectedVariant._id,
+        size: selectedSize,
+        quantity: 1,
+      });
+      
+      // Show success message
+      const message = `${product.title} (${selectedVariant.color}, ${selectedSize}) added to cart!`;
+      alert(message);
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || "Failed to add to cart";
+      alert(errorMsg);
+    }
   };
 
   if (loading) {
@@ -243,32 +279,31 @@ const PublicProductDetail = () => {
             )}
 
             {/* Sizes */}
-    {/* Sizes */}
-{product.availableSizes?.length > 0 && (
-  <div>
-    <div className="flex items-center justify-between mb-3">
-      <h3 className="text-sm font-semibold text-gray-700">
-        Size: <span className="font-normal text-gray-500">{selectedSize || "Select"}</span>
-      </h3>
-      <span className="text-xs text-gray-400 underline cursor-pointer">Size Guide</span>
-    </div>
-    <div className="flex flex-wrap gap-2">
-      {product.availableSizes.map((size) => (
-        <button
-          key={size}
-          onClick={() => setSelectedSize(size)}
-          className={`px-4 py-2 border rounded-lg text-sm font-medium transition ${
-            selectedSize === size
-              ? "border-gray-900 bg-gray-900 text-white"
-              : "border-gray-300 text-gray-700 bg-white hover:border-gray-900"
-          }`}
-        >
-          {size}
-        </button>
-      ))}
-    </div>
-  </div>
-)}
+            {product.availableSizes?.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    Size: <span className="font-normal text-gray-500">{selectedSize || "Select"}</span>
+                  </h3>
+                  <span className="text-xs text-gray-400 underline cursor-pointer">Size Guide</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {product.availableSizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition ${
+                        selectedSize === size
+                          ? "border-gray-900 bg-gray-900 text-white"
+                          : "border-gray-300 text-gray-700 bg-white hover:border-gray-900"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Stock */}
             <div className="flex items-center gap-2">
@@ -284,11 +319,12 @@ const PublicProductDetail = () => {
             {/* Action Buttons */}
             <div className="flex gap-3 pt-2">
               <button
-                disabled={selectedVariant?.stock === 0}
+                onClick={handleAddToCart}
+                disabled={cartLoading || selectedVariant?.stock === 0 || !selectedVariant || !selectedSize}
                 className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-semibold px-6 py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 <ShoppingBag size={18} />
-                Add to Cart
+                {cartLoading ? "Adding..." : "Add to Cart"}
               </button>
               <button className="p-3.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition">
                 <Heart size={20} className="text-gray-500" />

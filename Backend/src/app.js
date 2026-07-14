@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser"
 import morgan from "morgan"
 import authRouter from "./routes/auth.routes.js"
 import productRouter from "./routes/product.routes.js";
+import cartRouter from "./routes/cart.routes.js";
 import passport from "./config/passport.js";
 import session from "express-session";
 import config from "./config/config.js";
@@ -38,12 +39,13 @@ app.use(morgan("dev"));
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "🚀 SILQ Backend is running fine",
+    message: " SILQ Backend is running fine",
   });
 });
 
 app.use("/api/auth" , authRouter)
 app.use("/api/products", productRouter);
+app.use("/api/cart", cartRouter);
 
 
 
