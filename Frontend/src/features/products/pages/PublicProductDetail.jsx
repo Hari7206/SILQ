@@ -17,6 +17,7 @@ import {
 const TABS = ["Details", "Shipping & Returns"];
 
 const PublicProductDetail = () => {
+  const [selectedSize, setSelectedSize] = useState(null);
   const { id } = useParams();
   const navigate = useNavigate();
   const { fetchPublicProductById, product, loading } = useProduct();
@@ -242,26 +243,32 @@ const PublicProductDetail = () => {
             )}
 
             {/* Sizes */}
-            {product.availableSizes?.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-700">
-                    Size: <span className="font-normal text-gray-500">M</span>
-                  </h3>
-                  <span className="text-xs text-gray-400 underline cursor-pointer">Size Guide</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {product.availableSizes.map((size) => (
-                    <button
-                      key={size}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:border-gray-900 transition"
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+    {/* Sizes */}
+{product.availableSizes?.length > 0 && (
+  <div>
+    <div className="flex items-center justify-between mb-3">
+      <h3 className="text-sm font-semibold text-gray-700">
+        Size: <span className="font-normal text-gray-500">{selectedSize || "Select"}</span>
+      </h3>
+      <span className="text-xs text-gray-400 underline cursor-pointer">Size Guide</span>
+    </div>
+    <div className="flex flex-wrap gap-2">
+      {product.availableSizes.map((size) => (
+        <button
+          key={size}
+          onClick={() => setSelectedSize(size)}
+          className={`px-4 py-2 border rounded-lg text-sm font-medium transition ${
+            selectedSize === size
+              ? "border-gray-900 bg-gray-900 text-white"
+              : "border-gray-300 text-gray-700 bg-white hover:border-gray-900"
+          }`}
+        >
+          {size}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
 
             {/* Stock */}
             <div className="flex items-center gap-2">
