@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
-import { useCart } from "../../cart/hook/useCart";
 import PublicProductCard from "../components/PublicProductCard";
-import { Search, ShoppingBag } from "lucide-react";
+import { Search } from "lucide-react";
+import Navbar from "../../../components/Navbar/Navbar";
 
 const PublicProducts = () => {
-  const navigate = useNavigate();
   const { fetchPublicProducts, products, loading } = useProduct();
-  const { totalItems } = useCart();
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredProducts, setFilteredProducts] = useState([]);
 
@@ -39,29 +36,13 @@ const PublicProducts = () => {
 
   return (
     <div className="min-h-screen bg-[#FBF4E8]">
+      <Navbar />
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-8">
         <div className="max-w-7xl mx-auto">
-          {/* Top Row: Title + Cart Icon */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Shop SILQ</h1>
-              <p className="text-gray-500 mt-1">Discover our curated collection</p>
-            </div>
-
-            {/* Cart Icon */}
-            <button
-              onClick={() => navigate("/cart")}
-              className="relative p-2 hover:bg-gray-100 rounded-full transition"
-            >
-              <ShoppingBag size={24} className="text-gray-700" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#F5C451] text-gray-900 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-            </button>
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Shop SILQ</h1>
+          <p className="text-gray-500 mt-1">Discover our curated collection</p>
 
           {/* Search Bar */}
           <div className="mt-4 flex items-center gap-4">

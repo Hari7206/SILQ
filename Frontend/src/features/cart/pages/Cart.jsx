@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../hook/useCart";
 import { useSelector } from "react-redux";
 import { Trash2, Minus, Plus, ShoppingBag, ArrowLeft } from "lucide-react";
+import Navbar from "../../../components/Navbar/Navbar";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-[#FBF4E8] py-8">
+         <Navbar />
       <div className="max-w-6xl mx-auto px-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

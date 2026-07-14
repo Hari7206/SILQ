@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
 import { useCart } from "../../cart/hook/useCart";
+import Navbar from "../../../components/Navbar/Navbar";
 import {
   ChevronLeft,
   ChevronRight,
@@ -121,6 +122,7 @@ const PublicProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#FBF4E8]">
+         <Navbar />
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Back Button */}
         <button
