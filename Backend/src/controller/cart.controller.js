@@ -114,34 +114,37 @@ export const getCart = async (req, res) => {
       });
     }
 
-    const processedCart = cartItems.map((item) => {
-      const variant = item.product.variants?.find(
-        (v) => v._id.toString() === item.variant.toString()
-      );
+  const processedCart = cartItems.map((item) => {
+  const variant = item.product.variants?.find(
+    (v) => v._id.toString() === item.variant.toString()
+  );
 
-      return {
-        _id: item._id,
-        product: {
-          _id: item.product._id,
-          title: item.product.title,
-          category: item.product.category,
-          mainImage: item.product.mainImage || item.product.images?.[0],
-        },
-        variant: variant
-          ? {
-              _id: variant._id,
-              color: variant.color,
-              colorCode: variant.colorCode,
-            }
-          : null,
-        size: item.size,
-        quantity: item.quantity,
-        price: item.price,
-        subtotal: item.price.amount * item.quantity,
-        inStock: variant ? variant.stock >= item.quantity : false,
-      };
-    });
 
+  const variantImages = variant?.images || [];
+  const variantImage = variantImages[0] || item.product.mainImage || item.product.images?.[0];
+
+  return {
+    _id: item._id,
+    product: {
+      _id: item.product._id,
+      title: item.product.title,
+      category: item.product.category,
+      mainImage: variantImage, // ← Use variant image!
+    },
+    variant: variant
+      ? {
+          _id: variant._id,
+          color: variant.color,
+          colorCode: variant.colorCode,
+        }
+      : null,
+    size: item.size,
+    quantity: item.quantity,
+    price: item.price,
+    subtotal: item.price.amount * item.quantity,
+    inStock: variant ? variant.stock >= item.quantity : false,
+  };
+});
     const totalItems = processedCart.reduce((sum, item) => sum + item.quantity, 0);
     const totalAmount = processedCart.reduce((sum, item) => sum + item.subtotal, 0);
 

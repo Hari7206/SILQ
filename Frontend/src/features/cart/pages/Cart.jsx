@@ -10,31 +10,39 @@ const Cart = () => {
   const { items, totalItems, totalAmount, loading, fetchCart, updateQuantity, removeFromCart } = useCart();
   const user = useSelector((state) => state.auth.user);
 
+  // ✅ Only fetch cart once on mount
   useEffect(() => {
     if (!user) {
       navigate("/login");
       return;
     }
     fetchCart();
-  }, []);
+  }, []); // ← Empty array = runs once
 
+  // ✅ Update quantity - NO reload
   const handleUpdateQuantity = async (id, newQuantity) => {
     if (newQuantity < 1) return;
     await updateQuantity(id, newQuantity);
+    // ✅ Redux state already updated, no need to fetch
   };
 
+  // ✅ Remove item - NO reload
   const handleRemoveItem = async (id) => {
     if (window.confirm("Are you sure you want to remove this item?")) {
       await removeFromCart(id);
+      // ✅ Redux state already updated, no need to fetch
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FBF4E8] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#F5C451] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-gray-500 mt-4">Loading cart...</p>
+      <div className="min-h-screen bg-[#FBF4E8]">
+        <Navbar />
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-[#F5C451] border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-gray-500 mt-4">Loading cart...</p>
+          </div>
         </div>
       </div>
     );
@@ -42,26 +50,29 @@ const Cart = () => {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-[#FBF4E8] flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🛒</div>
-          <h2 className="text-2xl font-bold text-gray-900">Your cart is empty</h2>
-          <p className="text-gray-500 mt-2">Looks like you haven't added any items yet.</p>
-          <button
-            onClick={() => navigate("/")}
-            className="mt-6 bg-[#F5C451] hover:bg-[#f0ba33] text-gray-900 font-semibold px-6 py-3 rounded-lg transition"
-          >
-            Continue Shopping
-          </button>
+      <div className="min-h-screen bg-[#FBF4E8]">
+        <Navbar />
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🛒</div>
+            <h2 className="text-2xl font-bold text-gray-900">Your cart is empty</h2>
+            <p className="text-gray-500 mt-2">Looks like you haven't added any items yet.</p>
+            <button
+              onClick={() => navigate("/")}
+              className="mt-6 bg-[#F5C451] hover:bg-[#f0ba33] text-gray-900 font-semibold px-6 py-3 rounded-lg transition"
+            >
+              Continue Shopping
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FBF4E8] py-8">
-         <Navbar />
-      <div className="max-w-6xl mx-auto px-6">
+    <div className="min-h-screen bg-[#FBF4E8]">
+      <Navbar />
+      <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
