@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
 import PublicProductCard from "../components/PublicProductCard";
-import { Search } from "lucide-react";
 import Navbar from "../../../components/Navbar/Navbar";
 
 const PublicProducts = () => {
   const { fetchPublicProducts, products, loading } = useProduct();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams] = useSearchParams();
+  const searchTerm = searchParams.get("search") || "";
   const [filteredProducts, setFilteredProducts] = useState([]);
 
   useEffect(() => {
@@ -20,43 +21,41 @@ const PublicProducts = () => {
         product.category.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredProducts(filtered);
+    } else {
+      setFilteredProducts([]);
     }
   }, [searchTerm, products]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FBF4E8] flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#F5C451] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-gray-500 mt-4">Loading products...</p>
+          <div className="w-12 h-12 border-4 border-gray-900 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-500 mt-4 font-['Inter',sans-serif]">Loading products...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FBF4E8]">
+    <div className="min-h-screen bg-white font-['Inter',sans-serif]">
       <Navbar />
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-8">
+      <div className="bg-white border-b border-gray-200 px-6 py-10">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900">Shop SILQ</h1>
-          <p className="text-gray-500 mt-1">Discover our curated collection</p>
-
-          {/* Search Bar */}
-          <div className="mt-4 flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-[#F5C451] focus:border-transparent focus:outline-none"
-              />
-            </div>
-          </div>
+          <h1 className="text-3xl lg:text-4xl font-semibold text-gray-900 font-['Playfair_Display',serif]">
+            Shop SILQ
+          </h1>
+          <p className="text-gray-500 mt-2">
+            {searchTerm ? (
+              <>
+                Showing results for <span className="font-medium text-gray-700">"{searchTerm}"</span>
+              </>
+            ) : (
+              "Discover our curated collection"
+            )}
+          </p>
         </div>
       </div>
 

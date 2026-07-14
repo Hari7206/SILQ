@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useCart } from "../../features/cart/hook/useCart";
-import { ShoppingBag, User, LogOut, LogIn, UserPlus } from "lucide-react";
+import { ShoppingBag, User, LogOut, LogIn, UserPlus, Search } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../features/auth/hook/useAuth";
 
@@ -13,22 +13,48 @@ const Navbar = () => {
   const user = useSelector((state) => state.auth.user);
 
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Don't show navbar on seller pages
   if (location.pathname.startsWith("/seller")) {
     return null;
   }
 
+  const runSearch = () => {
+    const params = new URLSearchParams();
+    if (searchTerm.trim()) params.set("search", searchTerm.trim());
+    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`);
+  };
+
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo */}
+        {/* Left: Logo */}
         <div
           onClick={() => navigate("/")}
           className="text-2xl font-black tracking-widest cursor-pointer select-none"
         >
           <span className="text-gray-900">SI</span>
           <span className="text-[#F5C451]">LQ</span>
+        </div>
+
+        {/* Middle: Search */}
+        <div className="flex-1 max-w-md mx-6">
+          <div className="relative">
+            <Search
+              size={18}
+              onClick={runSearch}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
+            />
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && runSearch()}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent focus:outline-none transition"
+            />
+          </div>
         </div>
 
         {/* Right Side */}
