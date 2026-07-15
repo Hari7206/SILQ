@@ -7,6 +7,7 @@ export const createProduct = async (req, res) => {
       description,
       category,
       subCategory,
+      gender,
       variants,
       availableSizes,
       fabric,
@@ -47,7 +48,7 @@ export const createProduct = async (req, res) => {
     // Distribute images to ALL variants
     if (req.files && req.files.length > 0) {
       const uploadedUrls = req.files.map((file) => file.path);
-      
+
       parsedVariants.forEach((variant, index) => {
         if (uploadedUrls[index]) {
           variant.images = [uploadedUrls[index]];
@@ -103,6 +104,7 @@ export const createProduct = async (req, res) => {
       description,
       category,
       subCategory: subCategory || null,
+      gender: gender || "Unisex",
       mainImage,
       variants: cleanedVariants,
       availableSizes: parsedSizes || [],
@@ -137,7 +139,7 @@ export const getProducts = async (req, res) => {
   try {
     const products = await productModel.find({ seller: req.user._id });
 
-  
+
     const productsWithVirtuals = products.map((p) => ({
       ...p.toObject(),
       priceRange: p.priceRange,
@@ -222,66 +224,89 @@ export const updateProduct = async (req, res) => {
       description,
       category,
       subCategory,
+      gender,
+      variants,        // ← ADD THIS
+      availableSizes,
       fabric,
-      stock,
+      occasion,
+      badges,
       isActive,
+      isFeatured,
     } = req.body;
 
-    let price = product.price;
-    if (req.body.priceAmount) {
-      price = {
-        amount: parseFloat(req.body.priceAmount),
-        currency: req.body.priceCurrency || product.price.currency,
-      };
-    }
-
-    let availableSizes = product.availableSizes;
-    if (req.body.availableSizes) {
+    // ✅ Parse variants if sent as JSON string
+    let parsedVariants = variants;
+    if (typeof variants === "string") {
       try {
-        availableSizes = JSON.parse(req.body.availableSizes);
+        parsedVariants = JSON.parse(variants);
       } catch {
-        availableSizes = req.body.availableSizes;
+        return res.status(400).json({
+          success: false,
+          message: "Invalid variants format",
+        });
       }
     }
 
-    let colors = product.colors;
-    if (req.body.colors) {
+    // ✅ Validate variants if provided
+    if (parsedVariants && parsedVariants.length > 0) {
+      for (const variant of parsedVariants) {
+        if (!variant.color || !variant.price?.amount || variant.stock === undefined) {
+          return res.status(400).json({
+            success: false,
+            message: "Each variant must have color, price, and stock",
+          });
+        }
+      }
+      product.variants = parsedVariants;
+      // Update main image from first variant
+      product.mainImage = parsedVariants[0]?.images?.[0] || null;
+    }
+
+    // Parse availableSizes
+    let parsedSizes = availableSizes;
+    if (typeof availableSizes === "string") {
       try {
-        colors = JSON.parse(req.body.colors);
+        parsedSizes = JSON.parse(availableSizes);
+        if (!Array.isArray(parsedSizes)) {
+          parsedSizes = [];
+        }
       } catch {
-        colors = req.body.colors;
+        parsedSizes = [];
       }
     }
 
-    let occasion = product.occasion;
-    if (req.body.occasion) {
+    // Parse occasion
+    let parsedOccasion = occasion;
+    if (typeof occasion === "string") {
       try {
-        occasion = JSON.parse(req.body.occasion);
+        parsedOccasion = JSON.parse(occasion);
       } catch {
-        occasion = req.body.occasion;
+        parsedOccasion = [];
       }
     }
 
+    // Parse badges
+    let parsedBadges = badges;
+    if (typeof badges === "string") {
+      try {
+        parsedBadges = JSON.parse(badges);
+      } catch {
+        parsedBadges = {};
+      }
+    }
+
+    // Update fields
     if (title) product.title = title;
     if (description) product.description = description;
     if (category) product.category = category;
-    if (subCategory) product.subCategory = subCategory;
-    if (fabric) product.fabric = fabric;
-    if (stock !== undefined) product.stock = parseFloat(stock);
-    if (isActive !== undefined) product.isActive = isActive === "true";
-    if (price) product.price = price;
-    if (availableSizes) product.availableSizes = availableSizes;
-    if (colors) product.colors = colors;
-    if (occasion) product.occasion = occasion;
-
-    if (req.files && req.files.length > 0) {
-      const newImages = req.files.map((file, index) => ({
-        url: file.path,
-        alt: req.body.altTexts?.[index] || `${product.title} - Image ${index + 1}`,
-        isMain: false,
-      }));
-      product.images = [...product.images, ...newImages];
-    }
+    if (subCategory !== undefined) product.subCategory = subCategory;
+    if (gender) product.gender = gender;
+    if (fabric !== undefined) product.fabric = fabric;
+    if (parsedSizes) product.availableSizes = parsedSizes;
+    if (parsedOccasion) product.occasion = parsedOccasion;
+    if (parsedBadges) product.badges = parsedBadges;
+    if (isActive !== undefined) product.isActive = isActive;
+    if (isFeatured !== undefined) product.isFeatured = isFeatured;
 
     await product.save();
 
@@ -298,7 +323,6 @@ export const updateProduct = async (req, res) => {
     });
   }
 };
-
 /**
  * Add more images to existing product
  * @route PUT /api/products/:id/add-images

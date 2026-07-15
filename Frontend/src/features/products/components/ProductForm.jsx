@@ -8,6 +8,7 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     description: initialData?.description || "",
     category: initialData?.category || "",
     subCategory: initialData?.subCategory || "",
+    gender: initialData?.gender || "Men", 
     availableSizes: initialData?.availableSizes || [],
     fabric: initialData?.fabric || "",
     occasion: initialData?.occasion?.join(", ") || "",
@@ -37,6 +38,8 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
   const [variantImagePreviews, setVariantImagePreviews] = useState({});
   const [uploadingImages, setUploadingImages] = useState({});
 
+  const fileInputRefs = useRef({});
+
   const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -57,8 +60,6 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
       return null;
     }
   };
-
-  const fileInputRefs = useRef({});
 
   const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL"];
   const currencyOptions = ["INR", "USD", "EUR", "GBP"];
@@ -275,6 +276,21 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
               className={inputClass}
             />
           </div>
+          <div>
+            <label className={labelClass}>Gender *</label>
+            <select
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              required
+              className={inputClass}
+            >
+              <option value="Men">Men</option>
+              <option value="Women">Women</option>
+              <option value="Kids">Kids</option>
+              <option value="Unisex">Unisex</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -466,6 +482,7 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
                           )}
                         </div>
                         <input
+                          ref={(el) => (fileInputRefs.current[index] = el)}
                           type="file"
                           accept="image/*"
                           multiple
@@ -603,4 +620,3 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
 };
 
 export default ProductForm;
-

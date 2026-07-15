@@ -1,3 +1,4 @@
+
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useCart } from "../../features/cart/hook/useCart";
@@ -23,7 +24,10 @@ const Navbar = () => {
   const runSearch = () => {
     const params = new URLSearchParams();
     if (searchTerm.trim()) params.set("search", searchTerm.trim());
-    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`);
+    if (typeof selectedGender !== "undefined" && selectedGender) {
+      params.set("gender", selectedGender);
+    }
+    navigate(`/?${params.toString()}`);
   };
 
   return (
