@@ -1,10 +1,10 @@
-
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useCart } from "../../features/cart/hook/useCart";
-import { ShoppingBag, User, LogOut, LogIn, UserPlus, Search } from "lucide-react";
-import { useState } from "react";
+import { ShoppingBag, User, LogOut, LogIn, UserPlus, Search, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../features/auth/hook/useAuth";
+import axios from "axios";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -15,19 +15,73 @@ const Navbar = () => {
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const searchRef = useRef(null);
 
   // Don't show navbar on seller pages
   if (location.pathname.startsWith("/seller")) {
     return null;
   }
 
-  const runSearch = () => {
-    const params = new URLSearchParams();
-    if (searchTerm.trim()) params.set("search", searchTerm.trim());
-    if (typeof selectedGender !== "undefined" && selectedGender) {
-      params.set("gender", selectedGender);
-    }
-    navigate(`/?${params.toString()}`);
+  // Fetch suggestions when typing
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchTerm.length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      setIsLoadingSuggestions(true);
+      try {
+        const res = await axios.get(
+          `http://localhost:3000/api/products/public/search-suggestions?q=${encodeURIComponent(searchTerm)}`,
+          { withCredentials: true }
+        );
+        setSuggestions(res.data.suggestions || []);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error("Search suggestions error:", error);
+        setSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+
+    const delay = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(delay);
+  }, [searchTerm]);
+
+  // Click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+const runSearch = () => {
+  const params = new URLSearchParams();
+  if (searchTerm.trim()) params.set("search", searchTerm.trim());
+  navigate(`/?${params.toString()}`);  // ← This goes to home with search param
+  setShowSuggestions(false);
+};
+
+  const handleSuggestionClick = (productId) => {
+    navigate(`/products/${productId}`);
+    setShowSuggestions(false);
+    setSearchTerm("");
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   return (
@@ -42,8 +96,8 @@ const Navbar = () => {
           <span className="text-[#F5C451]">LQ</span>
         </div>
 
-        {/* Middle: Search */}
-        <div className="flex-1 max-w-md mx-6">
+        {/* Middle: Search with Suggestions */}
+        <div className="flex-1 max-w-md mx-6 relative" ref={searchRef}>
           <div className="relative">
             <Search
               size={18}
@@ -56,14 +110,100 @@ const Navbar = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runSearch()}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent focus:outline-none transition"
+              onFocus={() => searchTerm.length >= 2 && setShowSuggestions(true)}
+              className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent focus:outline-none transition"
             />
+            {searchTerm && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
+
+          {/* Suggestions Dropdown */}
+          {showSuggestions && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-80 overflow-y-auto z-50">
+              {isLoadingSuggestions ? (
+                <div className="p-4 text-center text-sm text-gray-400">
+                  <div className="inline-block w-4 h-4 border-2 border-gray-300 border-t-[#F5C451] rounded-full animate-spin mr-2"></div>
+                  Loading...
+                </div>
+              ) : suggestions.length > 0 ? (
+                <>
+                 {suggestions.map((product) => (
+  <div
+    key={product._id}
+    onClick={() => handleSuggestionClick(product._id)}
+    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition border-b border-gray-50 last:border-b-0"
+  >
+    {/* Image */}
+    <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+      {product.mainImage ? (
+        <img
+          src={product.mainImage}
+          alt={product.title}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">
+          📷
+        </div>
+      )}
+    </div>
+    {/* Text */}
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium text-gray-800 truncate">
+        {product.title}
+      </p>
+      <div className="flex items-center gap-2 text-xs text-gray-400">
+        <span className="bg-gray-100 px-1.5 py-0.5 rounded">
+          {product.category}
+        </span>
+        {product.gender && (
+          <span className="bg-gray-100 px-1.5 py-0.5 rounded">
+            {product.gender}
+          </span>
+        )}
+        {/* Relevance badge */}
+        {product.relevance === 1 && (
+          <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+            Perfect match
+          </span>
+        )}
+        {product.relevance >= 0.5 && product.relevance < 1 && (
+          <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+            {Math.round(product.relevance * 100)}% match
+          </span>
+        )}
+      </div>
+    </div>
+    <span className="text-[10px] text-gray-400 whitespace-nowrap">
+      {product.matchedFields?.join(", ")}
+    </span>
+  </div>
+))}
+                  <div
+                    onClick={runSearch}
+                    className="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 cursor-pointer transition border-t border-gray-100 flex items-center gap-2 text-sm text-gray-600"
+                  >
+                    <Search size={14} />
+                    Search for <span className="font-medium text-gray-800">"{searchTerm}"</span> in all products
+                  </div>
+                </>
+              ) : searchTerm.length >= 2 ? (
+                <div className="p-4 text-center text-sm text-gray-400">
+                  No products found for "{searchTerm}"
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
 
-        {/* Right Side */}
+        {/* Right Side (Cart + User) - unchanged */}
         <div className="flex items-center gap-4">
-          {/* Cart Icon */}
           <button
             onClick={() => navigate("/cart")}
             className="relative p-2 hover:bg-gray-100 rounded-full transition"
@@ -76,7 +216,6 @@ const Navbar = () => {
             )}
           </button>
 
-          {/* User Profile / Auth */}
           {user ? (
             <div className="relative">
               <button
@@ -88,7 +227,6 @@ const Navbar = () => {
                 </div>
               </button>
 
-              {/* Dropdown */}
               {showDropdown && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2">
                   <div className="px-4 py-2 border-b border-gray-100">

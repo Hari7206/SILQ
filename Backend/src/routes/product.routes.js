@@ -9,6 +9,7 @@ import {
   removeProductImage,
   getPublicProducts,
   getPublicProductById,
+  getSearchSuggestions
 } from "../controller/product.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/role.middleware.js";
@@ -16,11 +17,10 @@ import upload from "../utils/multer.config.js";
 
 const router = Router();
 
-// ============ PUBLIC ROUTES (No login required) ============
+router.get("/public/search-suggestions", getSearchSuggestions);
 router.get("/public", getPublicProducts);
 router.get("/public/:id", getPublicProductById);
 
-// ============ PROTECTED ROUTES (Login + Seller only) ============
 router.use(protect);
 router.use(authorize("seller"));
 

@@ -247,7 +247,6 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // ✅ Validate variants if provided
     if (parsedVariants && parsedVariants.length > 0) {
       for (const variant of parsedVariants) {
         if (!variant.color || !variant.price?.amount || variant.stock === undefined) {
@@ -258,11 +257,10 @@ export const updateProduct = async (req, res) => {
         }
       }
       product.variants = parsedVariants;
-      // Update main image from first variant
+    
       product.mainImage = parsedVariants[0]?.images?.[0] || null;
     }
 
-    // Parse availableSizes
     let parsedSizes = availableSizes;
     if (typeof availableSizes === "string") {
       try {
@@ -542,3 +540,118 @@ export const getPublicProductById = async (req, res) => {
     });
   }
 };
+
+
+/**
+ * Get product search suggestions (autocomplete)
+ * @route GET /api/products/public/search-suggestions
+ * @access Public
+ */
+export const getSearchSuggestions = async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.length < 2) {
+      return res.status(200).json({
+        success: true,
+        suggestions: [],
+      });
+    }
+
+    const query = q.toLowerCase().trim();
+    const words = query.split(" ").filter(w => w.length > 0);
+
+    // Build search conditions
+    const searchConditions = [];
+
+    // For each word, check all fields
+    for (const word of words) {
+      searchConditions.push(
+        { title: { $regex: word, $options: "i" } },
+        { category: { $regex: word, $options: "i" } },
+        { subCategory: { $regex: word, $options: "i" } },
+        { gender: { $regex: word, $options: "i" } },
+        { "variants.color": { $regex: word, $options: "i" } }
+      );
+    }
+
+    // Product must match ALL words (at least one field per word)
+    const products = await productModel
+      .find({
+        isActive: true,
+        $and: words.map(() => ({ $or: searchConditions })),
+      })
+      .select("title category subCategory gender mainImage variants")
+      .limit(10)
+      .lean();
+
+    // Format suggestions with relevance score
+    const suggestions = products.map((product) => {
+      // Count how many words matched
+      let matchCount = 0;
+      let matchedFields = [];
+
+      for (const word of words) {
+        if (product.title?.toLowerCase().includes(word)) {
+          matchCount++;
+          matchedFields.push("title");
+        } else if (product.category?.toLowerCase().includes(word)) {
+          matchCount++;
+          matchedFields.push("category");
+        } else if (product.subCategory?.toLowerCase().includes(word)) {
+          matchCount++;
+          matchedFields.push("subCategory");
+        } else if (product.gender?.toLowerCase().includes(word)) {
+          matchCount++;
+          matchedFields.push("gender");
+        } else if (product.variants?.some(v => v.color?.toLowerCase().includes(word))) {
+          matchCount++;
+          matchedFields.push("color");
+        }
+      }
+
+      return {
+        _id: product._id,
+        title: product.title,
+        category: product.category,
+        subCategory: product.subCategory,
+        gender: product.gender,
+        mainImage: product.mainImage || product.variants?.[0]?.images?.[0] || null,
+        matchCount,
+        matchedFields: [...new Set(matchedFields)], // Unique fields
+        relevance: matchCount / words.length, // % of words matched
+      };
+    });
+
+    // Sort by relevance (highest first)
+    suggestions.sort((a, b) => b.relevance - a.relevance);
+
+    res.status(200).json({
+      success: true,
+      suggestions,
+      count: suggestions.length,
+    });
+
+  } catch (error) {
+    console.error("Search suggestions error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching suggestions",
+    });
+  }
+};
+
+// Helper: Find which field matched
+function getMatchingField(product, query) {
+  const fields = ["title", "category", "subCategory", "gender"];
+  for (const field of fields) {
+    if (product[field]?.toLowerCase().includes(query)) {
+      return field;
+    }
+  }
+  // Check variant colors
+  if (product.variants?.some(v => v.color?.toLowerCase().includes(query))) {
+    return "color";
+  }
+  return "title";
+}

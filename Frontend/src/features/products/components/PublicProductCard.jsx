@@ -15,6 +15,9 @@ const PublicProductCard = ({ product, highlightColor }) => {
     }
   }
 
+  // ✅ Add fallback image if mainImage is broken
+  const imageUrl = mainImage || "https://via.placeholder.com/400x400?text=No+Image";
+
   const priceRange = product.priceRange || { min: 0, max: 0 };
   const hasPriceRange = priceRange.min !== priceRange.max;
   const totalStock = product.totalStock || 0;
@@ -29,17 +32,15 @@ const PublicProductCard = ({ product, highlightColor }) => {
       className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#F5C451] transition-all cursor-pointer group"
     >
       <div className="h-64 bg-gray-100 relative overflow-hidden">
-        {mainImage ? (
-          <img
-            src={mainImage}
-            alt={product.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
-            No image
-          </div>
-        )}
+        <img
+          src={imageUrl}
+          alt={product.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "https://via.placeholder.com/400x400?text=No+Image";
+          }}
+        />
         {totalStock === 0 && (
           <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-medium px-3 py-1 rounded-full">
             Out of Stock
