@@ -33,6 +33,10 @@ export const getProductById = async (id) => {
   return res.data;
 };
 
+export const getRelatedProducts = async (id, limit = 8) => {
+  const res = await productApi.get(`/public/related/${id}?limit=${limit}`);
+  return res.data;
+};
 // Create product with images
 export const createProduct = async (formData) => {
   const res = await productApi.post("/", formData, {
@@ -76,3 +80,4 @@ export const removeProductImage = async (id, imageUrl) => {
   });
   return res.data;
 };
+

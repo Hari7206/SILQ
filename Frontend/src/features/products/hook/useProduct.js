@@ -20,6 +20,7 @@ import {
   removeProductImage as removeProductImageAPI,
   getPublicProducts as getPublicProductsAPI,
   getPublicProductById as getPublicProductByIdAPI,
+  getRelatedProducts as getRelatedProductsAPI,
 } from "../service/product.api";
 
 export const useProduct = () => {
@@ -87,7 +88,15 @@ export const useProduct = () => {
       throw error;
     }
   };
-
+  const fetchRelatedProducts = async (id, limit = 8) => {
+    try {
+      const data = await getRelatedProductsAPI(id, limit);
+      return data.products || [];
+    } catch (error) {
+      console.error("Failed to fetch related products:", error);
+      return [];
+    }
+  };
   const createNewProduct = async (formData) => {
     try {
       dispatch(setLoading(true));
@@ -182,9 +191,13 @@ export const useProduct = () => {
     fetchPublicProducts,
     fetchPublicProductById,
 
+
     // Protected APIs
     fetchProducts,
     fetchProductById,
+    fetchRelatedProducts,
+
+
     createNewProduct,
     updateExistingProduct,
     deleteExistingProduct,

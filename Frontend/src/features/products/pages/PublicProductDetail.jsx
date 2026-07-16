@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
 import { useCart } from "../../cart/hook/useCart";
-import Navbar from "../../../components/Navbar/Navbar";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,21 +13,23 @@ import {
   Truck,
   ShieldCheck,
   ZoomIn,
-  Star,
 } from "lucide-react";
+import Navbar from "../../../components/Navbar/Navbar";
 
 const TABS = ["Details", "Shipping & Returns"];
 
 const PublicProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { fetchPublicProductById, product, loading } = useProduct();
+  const { fetchPublicProductById, fetchRelatedProducts, product, loading } = useProduct();
   const { addToCart, loading: cartLoading } = useCart();
-
+  
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [activeTab, setActiveTab] = useState(TABS[0]);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
 
   useEffect(() => {
     fetchPublicProductById(id);
@@ -40,6 +41,18 @@ const PublicProductDetail = () => {
       setCurrentImageIndex(0);
     }
   }, [product]);
+
+  // ✅ FIX: Remove fetchRelatedProducts from dependency array
+  useEffect(() => {
+    const loadRelated = async () => {
+      if (!product?._id) return;
+      setRelatedLoading(true);
+      const products = await fetchRelatedProducts(product._id, 8);
+      setRelatedProducts(products);
+      setRelatedLoading(false);
+    };
+    loadRelated();
+  }, [product?._id]); // ← Only runs when product ID changes
 
   const nextImage = () => {
     if (selectedVariant?.images?.length) {
@@ -63,17 +76,14 @@ const PublicProductDetail = () => {
       alert("Please select a color");
       return;
     }
-
     if (!selectedSize) {
       alert("Please select a size");
       return;
     }
-
     if (selectedVariant.stock === 0) {
       alert("This product is out of stock");
       return;
     }
-
     try {
       await addToCart({
         productId: product._id,
@@ -81,20 +91,17 @@ const PublicProductDetail = () => {
         size: selectedSize,
         quantity: 1,
       });
-
-      const message = `${product.title} (${selectedVariant.color}, ${selectedSize}) added to cart!`;
-      alert(message);
+      alert(`${product.title} (${selectedVariant.color}, ${selectedSize}) added to cart!`);
     } catch (error) {
-      const errorMsg = error.response?.data?.message || "Failed to add to cart";
-      alert(errorMsg);
+      alert(error.response?.data?.message || "Failed to add to cart");
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#FBF4E8] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-900 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="w-12 h-12 border-4 border-[#F5C451] border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-gray-500 mt-4">Loading product...</p>
         </div>
       </div>
@@ -103,10 +110,10 @@ const PublicProductDetail = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#FBF4E8] flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-500 text-lg">Product not found</p>
-          <button onClick={() => navigate("/")} className="mt-4 text-gray-900 font-medium hover:underline">
+          <button onClick={() => navigate("/")} className="mt-4 text-[#F5C451] hover:underline">
             Back to home
           </button>
         </div>
@@ -120,46 +127,8 @@ const PublicProductDetail = () => {
   const hasPriceRange = priceRange.min !== priceRange.max;
   const hasBadges = Object.values(product.badges || {}).some((v) => v === true);
 
-  // Optional fields — only render if your product data actually provides them
-  const rating = product.rating; // e.g. 4.8
-  const reviewCount = product.reviewCount; // e.g. 128
-  const compareAtPrice = product.compareAtPrice; // original price before discount
-  const currentPrice = selectedVariant?.price?.amount ?? priceRange.min;
-  const discountPercent =
-    compareAtPrice && compareAtPrice > currentPrice
-      ? Math.round(((compareAtPrice - currentPrice) / compareAtPrice) * 100)
-      : null;
-
-  const badgeList = [
-    product.badges?.freeShipping && {
-      icon: Truck,
-      label: "Free Shipping",
-      caption: "On orders over ₹999",
-    },
-    product.badges?.sevenDayReturn && {
-      icon: RotateCcw,
-      label: "Easy Returns",
-      caption: "7-day return policy",
-    },
-    product.badges?.authenticProduct && {
-      icon: ShieldCheck,
-      label: "Secure Payment",
-      caption: "100% secure checkout",
-    },
-    product.badges?.cashOnDelivery && {
-      icon: Wallet,
-      label: "Cash on Delivery",
-      caption: "Available at your door",
-    },
-    product.badges?.silkAssured && {
-      icon: Sparkles,
-      label: "Silk Assured",
-      caption: "Quality guaranteed",
-    },
-  ].filter(Boolean);
-
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#FBF4E8]">
       <Navbar />
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Back Button */}
@@ -179,10 +148,11 @@ const PublicProductDetail = () => {
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
-                  className={`w-[72px] h-[72px] rounded-xl overflow-hidden border-2 transition flex-shrink-0 bg-white ${currentImageIndex === index
+                  className={`w-[72px] h-[72px] rounded-xl overflow-hidden border-2 transition flex-shrink-0 bg-white ${
+                    currentImageIndex === index
                       ? "border-gray-900"
                       : "border-gray-200 hover:border-gray-400"
-                    }`}
+                  }`}
                 >
                   <img
                     src={img}
@@ -196,7 +166,7 @@ const PublicProductDetail = () => {
 
           {/* Main image */}
           <div className="order-2">
-            <div className="relative bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden aspect-[4/5]">
+            <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden aspect-[4/5]">
               {currentImage ? (
                 <img src={currentImage} alt={product.title} className="w-full h-full object-cover" />
               ) : (
@@ -238,8 +208,9 @@ const PublicProductDetail = () => {
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 ${currentImageIndex === index ? "border-gray-900" : "border-transparent"
-                      }`}
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 ${
+                      currentImageIndex === index ? "border-gray-900" : "border-transparent"
+                    }`}
                   >
                     <img src={img} alt={`${product.title} ${index + 1}`} className="w-full h-full object-cover" />
                   </button>
@@ -249,10 +220,10 @@ const PublicProductDetail = () => {
           </div>
 
           {/* Info column */}
-          <div className="order-3 space-y-5">
+          <div className="order-3 space-y-6">
             <div>
               <div className="flex items-center gap-2">
-                <span className="inline-block bg-gray-900 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md">
+                <span className="inline-block bg-[#FDF3DC] text-[#B8860B] text-xs font-medium px-3 py-1 rounded-full">
                   {product.category}
                 </span>
                 {product.subCategory && (
@@ -265,27 +236,9 @@ const PublicProductDetail = () => {
                 {product.title}
               </h1>
               <p className="text-sm text-gray-500 mt-1">by {product.seller?.fullname || "SILQ"}</p>
-
-              {/* Rating row — only shows if your data provides it */}
-              {rating && (
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="flex items-center gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        size={14}
-                        className={i < Math.round(rating) ? "fill-gray-900 text-gray-900" : "text-gray-300"}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-500">
-                    {rating} {reviewCount ? `(${reviewCount} reviews)` : ""}
-                  </span>
-                </div>
-              )}
             </div>
 
-            <div className="flex items-baseline gap-2 flex-wrap">
+            <div className="flex items-baseline gap-2">
               {hasPriceRange ? (
                 <>
                   <span className="text-3xl font-bold text-gray-900">₹{priceRange.min}</span>
@@ -295,17 +248,10 @@ const PublicProductDetail = () => {
               ) : (
                 <span className="text-3xl font-bold text-gray-900">₹{priceRange.min}</span>
               )}
-              {compareAtPrice && compareAtPrice > currentPrice && (
-                <span className="text-lg text-gray-400 line-through">₹{compareAtPrice}</span>
-              )}
-              {discountPercent && (
-                <span className="bg-gray-900 text-white text-xs font-bold px-2 py-1 rounded-md">
-                  {discountPercent}% OFF
-                </span>
-              )}
+              <span className="text-sm text-gray-400">INR</span>
             </div>
             {selectedVariant && hasPriceRange && (
-              <p className="text-sm text-gray-500 -mt-3">
+              <p className="text-sm text-gray-500 -mt-4">
                 Selected: <span className="font-semibold text-gray-700">₹{selectedVariant.price.amount}</span>
               </p>
             )}
@@ -326,8 +272,9 @@ const PublicProductDetail = () => {
                         key={index}
                         onClick={() => handleVariantSelect(variant)}
                         title={variant.color}
-                        className={`w-9 h-9 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${isSelected ? "border-gray-900" : "border-transparent hover:border-gray-300"
-                          }`}
+                        className={`w-9 h-9 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${
+                          isSelected ? "border-gray-900" : "border-transparent hover:border-gray-300"
+                        }`}
                       >
                         <span
                           className="w-7 h-7 rounded-full border border-gray-200"
@@ -354,10 +301,11 @@ const PublicProductDetail = () => {
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition ${selectedSize === size
+                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition ${
+                        selectedSize === size
                           ? "border-gray-900 bg-gray-900 text-white"
                           : "border-gray-300 text-gray-700 bg-white hover:border-gray-900"
-                        }`}
+                      }`}
                     >
                       {size}
                     </button>
@@ -369,19 +317,20 @@ const PublicProductDetail = () => {
             {/* Stock */}
             <div className="flex items-center gap-2">
               <span
-                className={`text-sm font-medium ${selectedVariant?.stock > 0 ? "text-green-600" : "text-red-500"
-                  }`}
+                className={`text-sm font-medium ${
+                  selectedVariant?.stock > 0 ? "text-green-600" : "text-red-500"
+                }`}
               >
                 {selectedVariant?.stock > 0 ? `In Stock (${selectedVariant.stock})` : "Out of Stock"}
               </span>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-1">
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={handleAddToCart}
                 disabled={cartLoading || selectedVariant?.stock === 0 || !selectedVariant || !selectedSize}
-                className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-semibold px-6 py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-semibold px-6 py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 <ShoppingBag size={18} />
                 {cartLoading ? "Adding..." : "Add to Cart"}
@@ -391,24 +340,34 @@ const PublicProductDetail = () => {
               </button>
             </div>
 
-            {/* Trust Badges — boxed, Flipkart-style */}
+            {/* Trust Badges */}
             {hasBadges && (
-              <div className="grid grid-cols-3 gap-2 pt-2">
-                {badgeList.map((badge, index) => {
-                  const Icon = badge.icon;
-                  return (
-                    <div
-                      key={index}
-                      className="flex flex-col items-center text-center gap-1.5 border border-gray-200 rounded-xl px-2 py-3 bg-white"
-                    >
-                      <Icon size={18} className="text-gray-700" />
-                      <span className="text-[11px] font-semibold text-gray-800 leading-tight">
-                        {badge.label}
-                      </span>
-                      <span className="text-[10px] text-gray-400 leading-tight">{badge.caption}</span>
-                    </div>
-                  );
-                })}
+              <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-500 pt-1">
+                {product.badges?.freeShipping && (
+                  <span className="flex items-center gap-1.5">
+                    <Truck size={14} /> Free Shipping
+                  </span>
+                )}
+                {product.badges?.sevenDayReturn && (
+                  <span className="flex items-center gap-1.5">
+                    <RotateCcw size={14} /> Easy Returns
+                  </span>
+                )}
+                {product.badges?.authenticProduct && (
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck size={14} /> Secure Payment
+                  </span>
+                )}
+                {product.badges?.cashOnDelivery && (
+                  <span className="flex items-center gap-1.5">
+                    <Wallet size={14} /> Cash on Delivery
+                  </span>
+                )}
+                {product.badges?.silkAssured && (
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles size={14} /> Silk Assured
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -422,10 +381,11 @@ const PublicProductDetail = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-3 text-sm font-medium transition border-b-2 -mb-px ${activeTab === tab
+                  className={`pb-3 text-sm font-medium transition border-b-2 -mb-px ${
+                    activeTab === tab
                       ? "border-gray-900 text-gray-900"
                       : "border-transparent text-gray-400 hover:text-gray-600"
-                    }`}
+                  }`}
                 >
                   {tab}
                 </button>
@@ -449,11 +409,83 @@ const PublicProductDetail = () => {
 
           {/* Secondary banner image */}
           {images[1] && (
-            <div className="rounded-2xl overflow-hidden bg-gray-100 aspect-[4/3] hidden lg:block">
-              <img src={images[1]} alt="" className="w-full h-full object-cover" />
+            <div className="rounded-2xl overflow-hidden bg-gray-900 aspect-[4/3] hidden lg:block">
+              <img src={images[1]} alt="" className="w-full h-full object-cover opacity-90" />
             </div>
           )}
         </div>
+
+        {/* ✅ You May Also Like Section */}
+        {!relatedLoading && relatedProducts.length > 0 && (
+          <div className="mt-16">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">You May Also Like</h2>
+              <button
+                onClick={() => navigate("/")}
+                className="text-sm text-[#F5C451] hover:underline"
+              >
+                View All
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {relatedProducts.map((relatedProduct) => {
+                const mainImage = relatedProduct.mainImage || relatedProduct.variants?.[0]?.images?.[0];
+                const priceRange = relatedProduct.priceRange || { min: 0, max: 0 };
+                const hasPriceRange = priceRange.min !== priceRange.max;
+                return (
+                  <div
+                    key={relatedProduct._id}
+                    onClick={() => navigate(`/products/${relatedProduct._id}`)}
+                    className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#F5C451] transition-all cursor-pointer group"
+                  >
+                    <div className="h-48 bg-gray-100 relative overflow-hidden">
+                      {mainImage ? (
+                        <img
+                          src={mainImage}
+                          alt={relatedProduct.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                          No image
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h3 className="text-sm font-semibold text-gray-800 truncate">
+                        {relatedProduct.title}
+                      </h3>
+                      <p className="text-xs text-gray-500">{relatedProduct.category}</p>
+                      <p className="text-sm font-bold text-gray-900 mt-1">
+                        {hasPriceRange ? (
+                          <>
+                            ₹{priceRange.min} - ₹{priceRange.max}
+                          </>
+                        ) : (
+                          `₹${priceRange.min}`
+                        )}
+                      </p>
+                      {relatedProduct.variants?.length > 1 && (
+                        <div className="flex gap-1 mt-1">
+                          {relatedProduct.variants.slice(0, 4).map((variant, index) => (
+                            <span
+                              key={index}
+                              className="w-4 h-4 rounded-full border border-gray-200"
+                              style={{ backgroundColor: variant.colorCode || "#ccc" }}
+                            />
+                          ))}
+                          {relatedProduct.variants.length > 4 && (
+                            <span className="text-[10px] text-gray-400">+{relatedProduct.variants.length - 4}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

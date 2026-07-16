@@ -655,3 +655,61 @@ function getMatchingField(product, query) {
   }
   return "title";
 }
+
+
+/**
+ * Get related products (You May Also Like)
+ * @route GET /api/products/public/related/:id
+ * @access Public
+ */
+export const getRelatedProducts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { limit = 8 } = req.query;
+
+    // Get the current product
+    const currentProduct = await productModel.findById(id);
+    if (!currentProduct) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Find related products (same category, gender, or subCategory)
+    const relatedProducts = await productModel
+      .find({
+        _id: { $ne: id }, // Exclude current product
+        isActive: true,
+        $or: [
+          { category: currentProduct.category },
+          { gender: currentProduct.gender },
+          { subCategory: currentProduct.subCategory },
+        ],
+      })
+      .select("-__v")
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .populate("seller", "fullname email");
+
+    // Add virtual fields
+    const productsWithVirtuals = relatedProducts.map((p) => ({
+      ...p.toObject(),
+      priceRange: p.priceRange,
+      totalStock: p.totalStock,
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: productsWithVirtuals.length,
+      products: productsWithVirtuals,
+    });
+
+  } catch (error) {
+    console.error("Get related products error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching related products",
+    });
+  }
+};
