@@ -40,11 +40,14 @@ const Navbar = () => {
           `http://localhost:3000/api/products/public/search-suggestions?q=${encodeURIComponent(searchTerm)}`,
           { withCredentials: true }
         );
-        setSuggestions(res.data.suggestions || []);
-        setShowSuggestions(true);
+        const results = res.data.suggestions || [];
+        setSuggestions(results);
+        // ✅ Only show suggestions if there are results
+        setShowSuggestions(results.length > 0);
       } catch (error) {
         console.error("Search suggestions error:", error);
         setSuggestions([]);
+        setShowSuggestions(false);
       } finally {
         setIsLoadingSuggestions(false);
       }
@@ -65,12 +68,12 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-const runSearch = () => {
-  const params = new URLSearchParams();
-  if (searchTerm.trim()) params.set("search", searchTerm.trim());
-  navigate(`/?${params.toString()}`);  // ← This goes to home with search param
-  setShowSuggestions(false);
-};
+  const runSearch = () => {
+    const params = new URLSearchParams();
+    if (searchTerm.trim()) params.set("search", searchTerm.trim());
+    navigate(`/?${params.toString()}`);
+    setShowSuggestions(false);
+  };
 
   const handleSuggestionClick = (productId) => {
     navigate(`/products/${productId}`);
@@ -83,6 +86,9 @@ const runSearch = () => {
     setSuggestions([]);
     setShowSuggestions(false);
   };
+
+  // ✅ IMPORTANT: Only show dropdown when ALL conditions are met
+  const shouldShowDropdown = showSuggestions && searchTerm.length >= 2 && suggestions.length > 0;
 
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-50 shadow-sm">
@@ -110,8 +116,23 @@ const runSearch = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runSearch()}
-              onFocus={() => searchTerm.length >= 2 && setShowSuggestions(true)}
-              className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent focus:outline-none transition"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-gray-50 text-sm transition"
+              style={{
+                border: "1px solid #e5e7eb",
+                outline: "none",
+                boxShadow: "none",
+                caretColor: "#9ca3af",
+                WebkitAppearance: "none",
+                appearance: "none",
+              }}
+              onFocus={(e) => {
+                e.target.style.border = "1px solid transparent";
+                e.target.style.boxShadow = "0 0 0 2px #111827";
+              }}
+              onBlur={(e) => {
+                e.target.style.border = "1px solid #e5e7eb";
+                e.target.style.boxShadow = "none";
+              }}
             />
             {searchTerm && (
               <button
@@ -123,68 +144,65 @@ const runSearch = () => {
             )}
           </div>
 
-          {/* Suggestions Dropdown */}
-          {showSuggestions && (
+          {/* ✅ Suggestions Dropdown - ONLY shows when there are actual suggestions */}
+          {shouldShowDropdown && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-80 overflow-y-auto z-50">
               {isLoadingSuggestions ? (
                 <div className="p-4 text-center text-sm text-gray-400">
                   <div className="inline-block w-4 h-4 border-2 border-gray-300 border-t-[#F5C451] rounded-full animate-spin mr-2"></div>
                   Loading...
                 </div>
-              ) : suggestions.length > 0 ? (
+              ) : (
                 <>
-                 {suggestions.map((product) => (
-  <div
-    key={product._id}
-    onClick={() => handleSuggestionClick(product._id)}
-    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition border-b border-gray-50 last:border-b-0"
-  >
-    {/* Image */}
-    <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-      {product.mainImage ? (
-        <img
-          src={product.mainImage}
-          alt={product.title}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">
-          📷
-        </div>
-      )}
-    </div>
-    {/* Text */}
-    <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium text-gray-800 truncate">
-        {product.title}
-      </p>
-      <div className="flex items-center gap-2 text-xs text-gray-400">
-        <span className="bg-gray-100 px-1.5 py-0.5 rounded">
-          {product.category}
-        </span>
-        {product.gender && (
-          <span className="bg-gray-100 px-1.5 py-0.5 rounded">
-            {product.gender}
-          </span>
-        )}
-        {/* Relevance badge */}
-        {product.relevance === 1 && (
-          <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">
-            Perfect match
-          </span>
-        )}
-        {product.relevance >= 0.5 && product.relevance < 1 && (
-          <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">
-            {Math.round(product.relevance * 100)}% match
-          </span>
-        )}
-      </div>
-    </div>
-    <span className="text-[10px] text-gray-400 whitespace-nowrap">
-      {product.matchedFields?.join(", ")}
-    </span>
-  </div>
-))}
+                  {suggestions.map((product) => (
+                    <div
+                      key={product._id}
+                      onClick={() => handleSuggestionClick(product._id)}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition border-b border-gray-50 last:border-b-0"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                        {product.mainImage ? (
+                          <img
+                            src={product.mainImage}
+                            alt={product.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">
+                            📷
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          {product.title}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <span className="bg-gray-100 px-1.5 py-0.5 rounded">
+                            {product.category}
+                          </span>
+                          {product.gender && (
+                            <span className="bg-gray-100 px-1.5 py-0.5 rounded">
+                              {product.gender}
+                            </span>
+                          )}
+                          {product.relevance === 1 && (
+                            <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                              Perfect match
+                            </span>
+                          )}
+                          {product.relevance >= 0.5 && product.relevance < 1 && (
+                            <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                              {Math.round(product.relevance * 100)}% match
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                        {product.matchedFields?.join(", ")}
+                      </span>
+                    </div>
+                  ))}
                   <div
                     onClick={runSearch}
                     className="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 cursor-pointer transition border-t border-gray-100 flex items-center gap-2 text-sm text-gray-600"
@@ -193,16 +211,12 @@ const runSearch = () => {
                     Search for <span className="font-medium text-gray-800">"{searchTerm}"</span> in all products
                   </div>
                 </>
-              ) : searchTerm.length >= 2 ? (
-                <div className="p-4 text-center text-sm text-gray-400">
-                  No products found for "{searchTerm}"
-                </div>
-              ) : null}
+              )}
             </div>
           )}
         </div>
 
-        {/* Right Side (Cart + User) - unchanged */}
+        {/* Right Side (Cart + User) */}
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/cart")}

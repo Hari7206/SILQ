@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   ZoomIn,
 } from "lucide-react";
-import Navbar from "../../../components/Navbar/Navbar";
+
 
 const TABS = ["Details", "Shipping & Returns"];
 
@@ -129,7 +129,7 @@ const PublicProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#FBF4E8]">
-      <Navbar />
+    
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Back Button */}
         <button

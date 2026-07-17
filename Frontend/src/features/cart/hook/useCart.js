@@ -22,7 +22,9 @@ export const useCart = () => {
     (state) => state.cart
   );
 
-  
+  /**
+   * Fetch cart items from backend
+   */
   const fetchCart = async () => {
     try {
       dispatch(setLoading(true));
@@ -36,35 +38,36 @@ export const useCart = () => {
     }
   };
 
-
+  /**
+   * Add item to cart
+   */
   const addToCart = async (itemData) => {
     try {
       dispatch(setLoading(true));
       const data = await addToCartAPI(itemData);
-    
-      const cartItem = data.cartItem;
-    
-      const itemForRedux = {
-        _id: cartItem._id,
+      
+      // Format the cart item for Redux
+      const cartItem = {
+        _id: data.cartItem._id,
         product: {
-          _id: cartItem.product._id,
-          title: cartItem.product.title,
-          category: cartItem.product.category,
-          mainImage: cartItem.product.mainImage || cartItem.product.images?.[0],
+          _id: data.cartItem.product?._id || data.cartItem.product,
+          title: data.cartItem.product?.title || "",
+          category: data.cartItem.product?.category || "",
+          mainImage: data.cartItem.product?.mainImage || null,
         },
-        variant: cartItem.variant ? {
-          _id: cartItem.variant._id,
-          color: cartItem.variant.color,
-          colorCode: cartItem.variant.colorCode,
+        variant: data.cartItem.variant ? {
+          _id: data.cartItem.variant._id,
+          color: data.cartItem.variant.color,
+          colorCode: data.cartItem.variant.colorCode,
         } : null,
-        size: cartItem.size,
-        quantity: cartItem.quantity,
-        price: cartItem.price,
-        subtotal: cartItem.price.amount * cartItem.quantity,
+        size: data.cartItem.size,
+        quantity: data.cartItem.quantity,
+        price: data.cartItem.price || { amount: 0, currency: "INR" },
+        subtotal: data.cartItem.price?.amount * data.cartItem.quantity || 0,
         inStock: true,
       };
       
-      dispatch(addCartItem(itemForRedux));
+      dispatch(addCartItem(cartItem));
       return data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || "Failed to add to cart";
@@ -73,12 +76,15 @@ export const useCart = () => {
     }
   };
 
-
+  /**
+   * Update cart item quantity
+   */
   const updateQuantity = async (id, quantity) => {
     try {
       dispatch(setLoading(true));
       const data = await updateCartItemAPI(id, quantity);
-     
+      
+      // Update Redux state
       dispatch(updateCartItemAction({ id, quantity }));
       return data;
     } catch (error) {
@@ -88,7 +94,9 @@ export const useCart = () => {
     }
   };
 
- 
+  /**
+   * Remove item from cart
+   */
   const removeFromCart = async (id) => {
     try {
       dispatch(setLoading(true));
@@ -102,24 +110,29 @@ export const useCart = () => {
     }
   };
 
+  /**
+   * Clear cart
+   */
   const clearCartItems = () => {
     dispatch(clearCart());
   };
 
-
+  /**
+   * Clear error
+   */
   const clearCartError = () => {
     dispatch(clearError());
   };
 
   return {
-
+    // State
     items,
     totalItems,
     totalAmount,
     loading,
     error,
 
-   
+    // Actions
     fetchCart,
     addToCart,
     updateQuantity,

@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -114,13 +113,22 @@ const EditProduct = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2">
-            <ProductForm
-              initialData={product}
-              onSubmit={handleSubmit}
-              loading={loading}
-              buttonText="Commit Inventory Changes"
-              error={error}
-            />
+            {/* ✅ ADD key={product._id} HERE */}
+            {product ? (
+              <ProductForm
+                key={product._id}
+                initialData={product}
+                onSubmit={handleSubmit}
+                loading={loading}
+                buttonText="Commit Inventory Changes"
+                error={error}
+              />
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                <div className="w-8 h-8 border-4 border-gray-200 border-t-[#F5C451] rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading product data...</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6 lg:sticky lg:top-6">

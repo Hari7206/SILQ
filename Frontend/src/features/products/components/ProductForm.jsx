@@ -1,27 +1,27 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Plus, X, ChevronDown, ChevronUp, Image as ImageIcon, Upload } from "lucide-react";
 
 const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
-  const [formData, setFormData] = useState({
-    title: initialData?.title || "",
-    description: initialData?.description || "",
-    category: initialData?.category || "",
-    subCategory: initialData?.subCategory || "",
-    gender: initialData?.gender || "Men", 
-    availableSizes: initialData?.availableSizes || [],
-    fabric: initialData?.fabric || "",
-    occasion: initialData?.occasion?.join(", ") || "",
-    isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
-    isFeatured: initialData?.isFeatured || false,
+  // Default form state
+  const defaultFormData = {
+    title: "",
+    description: "",
+    category: "",
+    subCategory: "",
+    gender: "Men",
+    availableSizes: [],
+    fabric: "",
+    occasion: "",
+    isActive: true,
+    isFeatured: false,
     badges: {
-      sevenDayReturn: initialData?.badges?.sevenDayReturn || false,
-      cashOnDelivery: initialData?.badges?.cashOnDelivery || false,
-      silkAssured: initialData?.badges?.silkAssured || false,
-      freeShipping: initialData?.badges?.freeShipping || false,
-      authenticProduct: initialData?.badges?.authenticProduct || false,
+      sevenDayReturn: false,
+      cashOnDelivery: false,
+      silkAssured: false,
+      freeShipping: false,
+      authenticProduct: false,
     },
-    variants: initialData?.variants || [
+    variants: [
       {
         color: "",
         colorCode: "",
@@ -32,14 +32,57 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
         isActive: true,
       },
     ],
-  });
+  };
 
+  // Function to populate form data from initialData
+  const populateFormData = (data) => {
+    if (!data) return defaultFormData;
+    
+    return {
+      title: data.title || "",
+      description: data.description || "",
+      category: data.category || "",
+      subCategory: data.subCategory || "",
+      gender: data.gender || "Men",
+      availableSizes: data.availableSizes || [],
+      fabric: data.fabric || "",
+      occasion: data.occasion?.join(", ") || "",
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      isFeatured: data.isFeatured || false,
+      badges: {
+        sevenDayReturn: data.badges?.sevenDayReturn || false,
+        cashOnDelivery: data.badges?.cashOnDelivery || false,
+        silkAssured: data.badges?.silkAssured || false,
+        freeShipping: data.badges?.freeShipping || false,
+        authenticProduct: data.badges?.authenticProduct || false,
+      },
+      variants: data.variants && data.variants.length > 0 ? data.variants : [
+        {
+          color: "",
+          colorCode: "",
+          price: { amount: "", currency: "INR" },
+          stock: "",
+          images: [],
+          sku: "",
+          isActive: true,
+        },
+      ],
+    };
+  };
+
+  const [formData, setFormData] = useState(populateFormData(initialData));
   const [expandedVariant, setExpandedVariant] = useState(0);
   const [variantImagePreviews, setVariantImagePreviews] = useState({});
   const [uploadingImages, setUploadingImages] = useState({});
 
   const fileInputRefs = useRef({});
-
+useEffect(() => {
+  if (initialData) {
+    const newData = populateFormData(initialData);
+    console.log("🔄 Setting form data:", newData);
+    setFormData(newData);
+  }
+}, [initialData]);
   const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -72,6 +115,10 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     }));
   };
 
+  useEffect(() => {
+  console.log("📦 ProductForm initialData:", initialData);
+  console.log("📦 ProductForm variants:", initialData?.variants);
+}, [initialData]);
   const handleBadgeChange = (badgeName) => {
     setFormData((prev) => ({
       ...prev,
@@ -91,17 +138,31 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     }));
   };
 
-  const handleVariantChange = (index, field, value) => {
-    const newVariants = [...formData.variants];
-    if (field === "priceAmount") {
-      newVariants[index].price.amount = value;
-    } else if (field === "priceCurrency") {
-      newVariants[index].price.currency = value;
-    } else {
-      newVariants[index][field] = value;
-    }
-    setFormData((prev) => ({ ...prev, variants: newVariants }));
-  };
+const handleVariantChange = (index, field, value) => {
+  const newVariants = [...formData.variants];
+  
+  // ✅ Create a deep copy of the variant to avoid read-only errors
+  const variantCopy = { ...newVariants[index] };
+  
+  // Handle price fields
+  if (field === "priceAmount") {
+    variantCopy.price = { 
+      ...variantCopy.price, 
+      amount: value 
+    };
+  } else if (field === "priceCurrency") {
+    variantCopy.price = { 
+      ...variantCopy.price, 
+      currency: value 
+    };
+  } else {
+    // Handle other fields (color, colorCode, stock, sku, etc.)
+    variantCopy[field] = value;
+  }
+  
+  newVariants[index] = variantCopy;
+  setFormData((prev) => ({ ...prev, variants: newVariants }));
+};
 
   const addVariant = () => {
     setFormData((prev) => ({
@@ -134,46 +195,53 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     }
   };
 
-  const handleVariantImageUpload = async (index, files) => {
-    const fileArray = Array.from(files).slice(0, 5 - formData.variants[index].images.length);
-    
-    if (fileArray.length === 0) return;
+ const handleVariantImageUpload = async (index, files) => {
+  const fileArray = Array.from(files).slice(0, 5 - formData.variants[index].images.length);
+  
+  if (fileArray.length === 0) return;
 
-    setUploadingImages((prev) => ({ ...prev, [index]: true }));
+  setUploadingImages((prev) => ({ ...prev, [index]: true }));
 
-    const newVariants = [...formData.variants];
-    const newPreviews = [];
+  const newVariants = [...formData.variants];
+  const newPreviews = [];
 
-    for (const file of fileArray) {
-      const preview = URL.createObjectURL(file);
-      newPreviews.push(preview);
+  for (const file of fileArray) {
+    const preview = URL.createObjectURL(file);
+    newPreviews.push(preview);
 
-      const url = await uploadToCloudinary(file);
-      if (url) {
-        newVariants[index].images.push(url);
-      }
+    const url = await uploadToCloudinary(file);
+    if (url) {
+      // ✅ Create a copy and update images
+      const variantCopy = { ...newVariants[index] };
+      variantCopy.images = [...variantCopy.images, url];
+      newVariants[index] = variantCopy;
     }
+  }
 
-    setVariantImagePreviews((prev) => ({
-      ...prev,
-      [index]: [...(prev[index] || []), ...newPreviews],
-    }));
+  setVariantImagePreviews((prev) => ({
+    ...prev,
+    [index]: [...(prev[index] || []), ...newPreviews],
+  }));
 
-    setFormData((prev) => ({ ...prev, variants: newVariants }));
-    setUploadingImages((prev) => ({ ...prev, [index]: false }));
-  };
+  setFormData((prev) => ({ ...prev, variants: newVariants }));
+  setUploadingImages((prev) => ({ ...prev, [index]: false }));
+};
 
   const removeVariantImage = (variantIndex, imageIndex) => {
-    const newVariants = [...formData.variants];
-    newVariants[variantIndex].images = newVariants[variantIndex].images.filter((_, i) => i !== imageIndex);
-    
-    setVariantImagePreviews((prev) => ({
-      ...prev,
-      [variantIndex]: prev[variantIndex]?.filter((_, i) => i !== imageIndex) || [],
-    }));
-    
-    setFormData((prev) => ({ ...prev, variants: newVariants }));
-  };
+  const newVariants = [...formData.variants];
+  
+  // ✅ Create a copy and update images
+  const variantCopy = { ...newVariants[variantIndex] };
+  variantCopy.images = variantCopy.images.filter((_, i) => i !== imageIndex);
+  newVariants[variantIndex] = variantCopy;
+  
+  setVariantImagePreviews((prev) => ({
+    ...prev,
+    [variantIndex]: prev[variantIndex]?.filter((_, i) => i !== imageIndex) || [],
+  }));
+  
+  setFormData((prev) => ({ ...prev, variants: newVariants }));
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();

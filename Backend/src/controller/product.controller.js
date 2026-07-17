@@ -201,6 +201,11 @@ export const getProductById = async (req, res) => {
  * @route PUT /api/products/:id
  * @access Seller only
  */
+/**
+ * Update product with variants
+ * @route PUT /api/products/:id
+ * @access Seller only
+ */
 export const updateProduct = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -219,13 +224,14 @@ export const updateProduct = async (req, res) => {
       });
     }
 
+    // ✅ Get ALL fields including variants
     const {
       title,
       description,
       category,
       subCategory,
       gender,
-      variants,        // ← ADD THIS
+      variants,
       availableSizes,
       fabric,
       occasion,
@@ -234,11 +240,14 @@ export const updateProduct = async (req, res) => {
       isFeatured,
     } = req.body;
 
-    // ✅ Parse variants if sent as JSON string
+    // ✅ Parse variants if sent as JSON string (from FormData)
     let parsedVariants = variants;
     if (typeof variants === "string") {
       try {
         parsedVariants = JSON.parse(variants);
+        if (!Array.isArray(parsedVariants)) {
+          parsedVariants = [];
+        }
       } catch {
         return res.status(400).json({
           success: false,
@@ -247,6 +256,7 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    // ✅ Validate variants if provided
     if (parsedVariants && parsedVariants.length > 0) {
       for (const variant of parsedVariants) {
         if (!variant.color || !variant.price?.amount || variant.stock === undefined) {
@@ -256,11 +266,13 @@ export const updateProduct = async (req, res) => {
           });
         }
       }
+      // ✅ Update variants
       product.variants = parsedVariants;
-    
+      // ✅ Update main image from first variant
       product.mainImage = parsedVariants[0]?.images?.[0] || null;
     }
 
+    // ✅ Parse availableSizes
     let parsedSizes = availableSizes;
     if (typeof availableSizes === "string") {
       try {
@@ -273,17 +285,20 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // Parse occasion
+    // ✅ Parse occasion
     let parsedOccasion = occasion;
     if (typeof occasion === "string") {
       try {
         parsedOccasion = JSON.parse(occasion);
+        if (!Array.isArray(parsedOccasion)) {
+          parsedOccasion = [];
+        }
       } catch {
         parsedOccasion = [];
       }
     }
 
-    // Parse badges
+    // ✅ Parse badges
     let parsedBadges = badges;
     if (typeof badges === "string") {
       try {
@@ -293,15 +308,15 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // Update fields
+    // ✅ Update basic fields
     if (title) product.title = title;
     if (description) product.description = description;
     if (category) product.category = category;
     if (subCategory !== undefined) product.subCategory = subCategory;
     if (gender) product.gender = gender;
     if (fabric !== undefined) product.fabric = fabric;
-    if (parsedSizes) product.availableSizes = parsedSizes;
-    if (parsedOccasion) product.occasion = parsedOccasion;
+    if (parsedSizes.length > 0) product.availableSizes = parsedSizes;
+    if (parsedOccasion.length > 0) product.occasion = parsedOccasion;
     if (parsedBadges) product.badges = parsedBadges;
     if (isActive !== undefined) product.isActive = isActive;
     if (isFeatured !== undefined) product.isFeatured = isFeatured;

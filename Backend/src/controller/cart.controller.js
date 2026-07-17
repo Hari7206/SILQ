@@ -1,6 +1,11 @@
 import cartModel from "../model/cart.model.js";
 import productModel from "../model/product.model.js";
 
+/**
+ * Add item to cart
+ * @route POST /api/cart
+ * @access Private (Login required)
+ */
 export const addToCart = async (req, res) => {
   try {
     const { productId, variantId, size, quantity = 1 } = req.body;
@@ -37,18 +42,15 @@ export const addToCart = async (req, res) => {
     });
 
     if (cartItem) {
-      
       const newQuantity = cartItem.quantity + quantity;
-      
-    
       if (variant.stock < newQuantity) {
         return res.status(400).json({
           success: false,
           message: `Only ${variant.stock} items available in stock`,
         });
       }
-      
       cartItem.quantity = newQuantity;
+      // ✅ Keep original price snapshot
       await cartItem.save();
       
       return res.status(200).json({
@@ -58,13 +60,14 @@ export const addToCart = async (req, res) => {
       });
     }
 
+    // ✅ Create with price snapshot
     cartItem = await cartModel.create({
       user: userId,
       product: productId,
       variant: variantId,
       size: size,
       quantity: quantity,
-      price: {
+      priceSnapshot: {
         amount: variant.price.amount,
         currency: variant.price.currency,
       },
@@ -75,7 +78,6 @@ export const addToCart = async (req, res) => {
       message: "Item added to cart successfully",
       cartItem,
     });
-
   } catch (error) {
     console.error("Add to cart error:", error);
     res.status(500).json({
@@ -92,68 +94,115 @@ export const addToCart = async (req, res) => {
  * @route GET /api/cart
  * @access Private (Login required)
  */
+/**
+ * Get cart with real-time prices using aggregation
+ * @route GET /api/cart
+ * @access Private (Login required)
+ */
 export const getCart = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const cartItems = await cartModel
-      .find({ user: userId })
-      .populate({
-        path: "product",
-        select: "title category images mainImage variants",
-      })
-      .sort({ createdAt: -1 }); 
+    const cartItems = await cartModel.aggregate([
+      { $match: { user: userId } },
+      {
+        $lookup: {
+          from: "products",
+          localField: "product",
+          foreignField: "_id",
+          as: "productData",
+        },
+      },
+      { $unwind: "$productData" },
+      { $unwind: "$productData.variants" },
+      {
+        $match: {
+          $expr: { $eq: ["$productData.variants._id", "$variant"] },
+        },
+      },
+      {
+        $addFields: {
+          "currentPrice": "$productData.variants.price",
+          "subtotal": {
+            $multiply: ["$productData.variants.price.amount", "$quantity"],
+          },
+          "inStock": {
+            $gte: ["$productData.variants.stock", "$quantity"],
+          },
+          // ✅ SAVINGS CALCULATION
+          "savings": {
+            $subtract: ["$priceSnapshot.amount", "$productData.variants.price.amount"],
+          },
+          "hasSavings": {
+            $gt: [
+              { $subtract: ["$priceSnapshot.amount", "$productData.variants.price.amount"] },
+              0
+            ]
+          }
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          items: {
+            $push: {
+              _id: "$_id",
+              user: "$user",
+              product: {
+                _id: "$productData._id",
+                title: "$productData.title",
+                category: "$productData.category",
+                mainImage: "$productData.mainImage",
+              },
+              variant: {
+                _id: "$productData.variants._id",
+                color: "$productData.variants.color",
+                colorCode: "$productData.variants.colorCode",
+              },
+              size: "$size",
+              quantity: "$quantity",
+              priceSnapshot: "$priceSnapshot", // ✅ Original price
+              price: "$currentPrice", // ✅ Current price
+              subtotal: "$subtotal",
+              inStock: "$inStock",
+              savings: "$savings", // ✅ Savings amount
+              hasSavings: "$hasSavings", // ✅ Whether savings exist
+            },
+          },
+          totalItems: { $sum: "$quantity" },
+          totalAmount: { $sum: "$subtotal" },
+          totalSavings: { $sum: "$savings" }, // ✅ Total savings
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          items: 1,
+          totalItems: 1,
+          totalAmount: 1,
+          totalSavings: 1, // ✅ Include total savings
+        },
+      },
+    ]);
 
-    if (cartItems.length === 0) {
+    if (!cartItems || cartItems.length === 0) {
       return res.status(200).json({
         success: true,
         message: "Your cart is empty",
         cart: [],
         totalItems: 0,
         totalAmount: 0,
+        totalSavings: 0,
       });
     }
-
-  const processedCart = cartItems.map((item) => {
-  const variant = item.product.variants?.find(
-    (v) => v._id.toString() === item.variant.toString()
-  );
-
-
-  const variantImages = variant?.images || [];
-  const variantImage = variantImages[0] || item.product.mainImage || item.product.images?.[0];
-
-  return {
-    _id: item._id,
-    product: {
-      _id: item.product._id,
-      title: item.product.title,
-      category: item.product.category,
-      mainImage: variantImage, // ← Use variant image!
-    },
-    variant: variant
-      ? {
-          _id: variant._id,
-          color: variant.color,
-          colorCode: variant.colorCode,
-        }
-      : null,
-    size: item.size,
-    quantity: item.quantity,
-    price: item.price,
-    subtotal: item.price.amount * item.quantity,
-    inStock: variant ? variant.stock >= item.quantity : false,
-  };
-});
-    const totalItems = processedCart.reduce((sum, item) => sum + item.quantity, 0);
-    const totalAmount = processedCart.reduce((sum, item) => sum + item.subtotal, 0);
 
     res.status(200).json({
       success: true,
       message: "Cart fetched successfully",
-      cart: processedCart,
-      totalItems,
-      totalAmount,
+      cart: cartItems[0].items,
+      totalItems: cartItems[0].totalItems,
+      totalAmount: cartItems[0].totalAmount,
+      totalSavings: cartItems[0].totalSavings || 0,
     });
 
   } catch (error) {
@@ -164,7 +213,6 @@ export const getCart = async (req, res) => {
     });
   }
 };
-
 
 
 /**
