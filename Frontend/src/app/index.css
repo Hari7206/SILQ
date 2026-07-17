@@ -28,3 +28,10 @@
     font-family: var(--font-body);
   }
 }
+
+@layer components {
+  .no-caret {
+    user-select: none;
+    cursor: default;
+  }
+}
