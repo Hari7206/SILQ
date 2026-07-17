@@ -116,15 +116,23 @@ const Navbar = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runSearch()}
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-gray-50 text-sm transition"
-              style={{
-                border: "1px solid #e5e7eb",
-                outline: "none",
-                boxShadow: "none",
-                caretColor: "#9ca3af",
-                WebkitAppearance: "none",
-                appearance: "none",
-              }}
+              className="
+w-full
+pl-10
+pr-10
+py-2.5
+rounded-xl
+bg-gray-50
+border
+border-gray-200
+outline-none
+ring-0
+focus:outline-none
+focus:ring-0
+focus:border-gray-200
+appearance-none
+"
+            
               onFocus={(e) => {
                 e.target.style.border = "1px solid transparent";
                 e.target.style.boxShadow = "0 0 0 2px #111827";
