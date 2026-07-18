@@ -19,9 +19,9 @@ export const googleAuthResponse = async (user, res) => {
     maxAge: 3 * 24 * 60 * 60 * 1000,
   });
 
-  // Redirect to React home
   res.redirect("http://localhost:5173/");
 };
+
 export const sendTokenResponse = async (user, res, message) => {
   const token = jwt.sign(
     { id: user._id },
@@ -32,7 +32,7 @@ export const sendTokenResponse = async (user, res, message) => {
   res.cookie("token", token, {
     httpOnly: true,
     secure: config.NODE_ENV === "production",
-    sameSite: "lax",  // ← CHANGE from "strict" to "lax"
+    sameSite: "lax",
     maxAge: 3 * 24 * 60 * 60 * 1000,
   });
 
@@ -51,15 +51,15 @@ export const sendTokenResponse = async (user, res, message) => {
 };
 
 export const register = async (req, res) => {
-  const { fullname, contact, email, password  , isSeller} = req.body;
-console.log(req.body);
-  // Check if user already exists
+  const { fullname, contact, email, password, isSeller } = req.body;
+  console.log(req.body);
+
   const existingUser = await userModel.findOne({
-      $or: [
-        {email} , 
-        {contact}
-      ]
-    });
+    $or: [
+      { email },
+      { contact }
+    ]
+  });
 
   if (existingUser) {
     return res.status(400).json({
@@ -68,20 +68,16 @@ console.log(req.body);
     });
   }
 
- 
-
-  // Create user
   const user = await userModel.create({
     fullname,
     contact,
     email,
-    password ,
+    password,
     role: isSeller ? "seller" : "buyer"
   });
 
-await sendTokenResponse(user, res , "user registered successfully");
+  await sendTokenResponse(user, res, "user registered successfully");
 };
-
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -109,9 +105,8 @@ export const login = async (req, res) => {
 
 export const getMe = async (req, res) => {
   try {
-    // Get token from cookie
     const token = req.cookies.token;
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -119,12 +114,10 @@ export const getMe = async (req, res) => {
       });
     }
 
-    // Verify token
     const decoded = jwt.verify(token, config.JWT_SECRET);
-    
-    // Find user
+
     const user = await userModel.findById(decoded.id);
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -132,7 +125,6 @@ export const getMe = async (req, res) => {
       });
     }
 
-    // Send user data
     res.status(200).json({
       success: true,
       user: {
@@ -155,7 +147,7 @@ export const logout = async (req, res) => {
   res.cookie('token', '', {
     httpOnly: true,
     secure: config.NODE_ENV === 'production',
-    sameSite: "lax",  // ← CHANGE from "strict" to "lax"
+    sameSite: "lax",
     expires: new Date(0)
   });
 
@@ -168,10 +160,9 @@ export const logout = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { contact, role } = req.body;
-    
-    // Get token from cookie
+
     const token = req.cookies.token;
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -179,12 +170,10 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    // Verify token
     const decoded = jwt.verify(token, config.JWT_SECRET);
-    
-    // Find user
+
     const user = await userModel.findById(decoded.id);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -192,12 +181,10 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    // Update profile
     if (contact) user.contact = contact;
     if (role) user.role = role;
     await user.save();
 
-    // Return updated user
     res.status(200).json({
       success: true,
       user: {
@@ -216,8 +203,6 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-
-
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -229,10 +214,8 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // Find user by email
     const user = await userModel.findOne({ email });
 
-    // Security: Don't reveal if email exists or not
     if (!user) {
       return res.status(200).json({
         success: true,
@@ -240,7 +223,6 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // Check if user is Google OAuth user (no password)
     if (user.provider === "google") {
       return res.status(400).json({
         success: false,
@@ -248,15 +230,12 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // Save token and expiry in database
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + config.RESET_TOKEN_EXPIRY; // 15 minutes
+    user.resetPasswordExpires = Date.now() + config.RESET_TOKEN_EXPIRY;
     await user.save();
 
-    // Send reset email
     await sendResetPasswordEmail(user.email, user.fullname, resetToken);
 
     res.status(200).json({
@@ -272,9 +251,6 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-/**
- * Reset Password - Set new password using token
- */
 export const resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
@@ -294,10 +270,9 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    // Find user by token and check if token is not expired
     const user = await userModel.findOne({
       resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }, // Token must be valid and not expired
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -307,10 +282,9 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    // Update user's password
-    user.password = password; // Will be hashed by pre-save hook
-    user.resetPasswordToken = null; // Clear token
-    user.resetPasswordExpires = null; // Clear expiry
+    user.password = password;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
     await user.save();
 
     res.status(200).json({
@@ -326,9 +300,6 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-/**
- * Verify Reset Token - Check if token is valid
- */
 export const verifyResetToken = async (req, res) => {
   try {
     const { token } = req.params;

@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// Sub-schema for variants
 const variantSchema = new mongoose.Schema({
   color: {
     type: String,

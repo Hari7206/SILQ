@@ -17,7 +17,6 @@ export const createProduct = async (req, res) => {
       isFeatured,
     } = req.body;
 
-    // Check required fields
     if (!title || !description || !category) {
       return res.status(400).json({
         success: false,
@@ -25,7 +24,6 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // Parse variants
     let parsedVariants = variants;
     if (typeof variants === "string") {
       try {
@@ -45,7 +43,6 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // Distribute images to ALL variants
     if (req.files && req.files.length > 0) {
       const uploadedUrls = req.files.map((file) => file.path);
 
@@ -56,7 +53,6 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // Validate variants
     for (const variant of parsedVariants) {
       if (!variant.color || !variant.price?.amount || variant.stock === undefined) {
         return res.status(400).json({
@@ -66,7 +62,6 @@ export const createProduct = async (req, res) => {
       }
     }
 
-    // Parse availableSizes
     let parsedSizes = availableSizes;
     if (typeof availableSizes === "string") {
       try {
@@ -79,7 +74,6 @@ export const createProduct = async (req, res) => {
       }
     }
 
-    // Parse badges
     let parsedBadges = badges || {};
     if (typeof badges === "string") {
       try {
@@ -89,16 +83,13 @@ export const createProduct = async (req, res) => {
       }
     }
 
-    // Get main image (first variant's first image)
     const mainImage = parsedVariants[0]?.images?.[0] || null;
 
-    // Remove SKU if empty to avoid duplicate error
     const cleanedVariants = parsedVariants.map((v) => ({
       ...v,
       sku: v.sku || undefined,
     }));
 
-    // Create product
     const product = await productModel.create({
       title,
       description,
@@ -130,15 +121,9 @@ export const createProduct = async (req, res) => {
   }
 };
 
-/**
- * Get all products for the logged-in seller
- * @route GET /api/products
- * @access Seller only
- */
 export const getProducts = async (req, res) => {
   try {
     const products = await productModel.find({ seller: req.user._id });
-
 
     const productsWithVirtuals = products.map((p) => ({
       ...p.toObject(),
@@ -160,11 +145,6 @@ export const getProducts = async (req, res) => {
   }
 };
 
-/**
- * Get single product by ID (only if seller owns it)
- * @route GET /api/products/:id
- * @access Seller only
- */
 export const getProductById = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -196,16 +176,6 @@ export const getProductById = async (req, res) => {
   }
 };
 
-/**
- * Update product with variants
- * @route PUT /api/products/:id
- * @access Seller only
- */
-/**
- * Update product with variants
- * @route PUT /api/products/:id
- * @access Seller only
- */
 export const updateProduct = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -224,7 +194,6 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // ✅ Get ALL fields including variants
     const {
       title,
       description,
@@ -240,7 +209,6 @@ export const updateProduct = async (req, res) => {
       isFeatured,
     } = req.body;
 
-    // ✅ Parse variants if sent as JSON string (from FormData)
     let parsedVariants = variants;
     if (typeof variants === "string") {
       try {
@@ -256,7 +224,6 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // ✅ Validate variants if provided
     if (parsedVariants && parsedVariants.length > 0) {
       for (const variant of parsedVariants) {
         if (!variant.color || !variant.price?.amount || variant.stock === undefined) {
@@ -266,13 +233,10 @@ export const updateProduct = async (req, res) => {
           });
         }
       }
-      // ✅ Update variants
       product.variants = parsedVariants;
-      // ✅ Update main image from first variant
       product.mainImage = parsedVariants[0]?.images?.[0] || null;
     }
 
-    // ✅ Parse availableSizes
     let parsedSizes = availableSizes;
     if (typeof availableSizes === "string") {
       try {
@@ -285,7 +249,6 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // ✅ Parse occasion
     let parsedOccasion = occasion;
     if (typeof occasion === "string") {
       try {
@@ -298,7 +261,6 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // ✅ Parse badges
     let parsedBadges = badges;
     if (typeof badges === "string") {
       try {
@@ -308,7 +270,6 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // ✅ Update basic fields
     if (title) product.title = title;
     if (description) product.description = description;
     if (category) product.category = category;
@@ -336,11 +297,7 @@ export const updateProduct = async (req, res) => {
     });
   }
 };
-/**
- * Add more images to existing product
- * @route PUT /api/products/:id/add-images
- * @access Seller only
- */
+
 export const addProductImages = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -389,11 +346,6 @@ export const addProductImages = async (req, res) => {
   }
 };
 
-/**
- * Remove an image from product
- * @route DELETE /api/products/:id/remove-image
- * @access Seller only
- */
 export const removeProductImage = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -440,11 +392,6 @@ export const removeProductImage = async (req, res) => {
   }
 };
 
-/**
- * Delete product (only if seller owns it)
- * @route DELETE /api/products/:id
- * @access Seller only
- */
 export const deleteProduct = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -478,11 +425,6 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-/**
- * Get all public products (for home page)
- * @route GET /api/products/public
- * @access Public
- */
 export const getPublicProducts = async (req, res) => {
   try {
     const products = await productModel
@@ -511,11 +453,6 @@ export const getPublicProducts = async (req, res) => {
   }
 };
 
-/**
- * Get single public product by ID
- * @route GET /api/products/public/:id
- * @access Public
- */
 export const getPublicProductById = async (req, res) => {
   try {
     const product = await productModel
@@ -556,16 +493,10 @@ export const getPublicProductById = async (req, res) => {
   }
 };
 
-
-/**
- * Get product search suggestions (autocomplete)
- * @route GET /api/products/public/search-suggestions
- * @access Public
- */
 export const getSearchSuggestions = async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     if (!q || q.length < 2) {
       return res.status(200).json({
         success: true,
@@ -576,10 +507,8 @@ export const getSearchSuggestions = async (req, res) => {
     const query = q.toLowerCase().trim();
     const words = query.split(" ").filter(w => w.length > 0);
 
-    // Build search conditions
     const searchConditions = [];
 
-    // For each word, check all fields
     for (const word of words) {
       searchConditions.push(
         { title: { $regex: word, $options: "i" } },
@@ -590,7 +519,6 @@ export const getSearchSuggestions = async (req, res) => {
       );
     }
 
-    // Product must match ALL words (at least one field per word)
     const products = await productModel
       .find({
         isActive: true,
@@ -600,9 +528,7 @@ export const getSearchSuggestions = async (req, res) => {
       .limit(10)
       .lean();
 
-    // Format suggestions with relevance score
     const suggestions = products.map((product) => {
-      // Count how many words matched
       let matchCount = 0;
       let matchedFields = [];
 
@@ -633,12 +559,11 @@ export const getSearchSuggestions = async (req, res) => {
         gender: product.gender,
         mainImage: product.mainImage || product.variants?.[0]?.images?.[0] || null,
         matchCount,
-        matchedFields: [...new Set(matchedFields)], // Unique fields
-        relevance: matchCount / words.length, // % of words matched
+        matchedFields: [...new Set(matchedFields)],
+        relevance: matchCount / words.length,
       };
     });
 
-    // Sort by relevance (highest first)
     suggestions.sort((a, b) => b.relevance - a.relevance);
 
     res.status(200).json({
@@ -656,7 +581,6 @@ export const getSearchSuggestions = async (req, res) => {
   }
 };
 
-// Helper: Find which field matched
 function getMatchingField(product, query) {
   const fields = ["title", "category", "subCategory", "gender"];
   for (const field of fields) {
@@ -664,25 +588,17 @@ function getMatchingField(product, query) {
       return field;
     }
   }
-  // Check variant colors
   if (product.variants?.some(v => v.color?.toLowerCase().includes(query))) {
     return "color";
   }
   return "title";
 }
 
-
-/**
- * Get related products (You May Also Like)
- * @route GET /api/products/public/related/:id
- * @access Public
- */
 export const getRelatedProducts = async (req, res) => {
   try {
     const { id } = req.params;
     const { limit = 8 } = req.query;
 
-    // Get the current product
     const currentProduct = await productModel.findById(id);
     if (!currentProduct) {
       return res.status(404).json({
@@ -691,10 +607,9 @@ export const getRelatedProducts = async (req, res) => {
       });
     }
 
-    // Find related products (same category, gender, or subCategory)
     const relatedProducts = await productModel
       .find({
-        _id: { $ne: id }, // Exclude current product
+        _id: { $ne: id },
         isActive: true,
         $or: [
           { category: currentProduct.category },
@@ -707,7 +622,6 @@ export const getRelatedProducts = async (req, res) => {
       .limit(parseInt(limit))
       .populate("seller", "fullname email");
 
-    // Add virtual fields
     const productsWithVirtuals = relatedProducts.map((p) => ({
       ...p.toObject(),
       priceRange: p.priceRange,

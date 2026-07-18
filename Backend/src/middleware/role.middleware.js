@@ -1,11 +1,4 @@
-/**
- * Authorize - Check if user has required role
- * @param {...string} roles - Allowed roles (e.g., "seller", "admin")
- * 
- * Usage: authorize("seller") or authorize("admin", "seller")
- */
 export const authorize = (...roles) => {
-    
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({

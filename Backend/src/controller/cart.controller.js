@@ -1,11 +1,6 @@
 import cartModel from "../model/cart.model.js";
 import productModel from "../model/product.model.js";
 
-/**
- * Add item to cart
- * @route POST /api/cart
- * @access Private (Login required)
- */
 export const addToCart = async (req, res) => {
   try {
     const { productId, variantId, size, quantity = 1 } = req.body;
@@ -50,7 +45,6 @@ export const addToCart = async (req, res) => {
         });
       }
       cartItem.quantity = newQuantity;
-      // ✅ Keep original price snapshot
       await cartItem.save();
       
       return res.status(200).json({
@@ -60,7 +54,6 @@ export const addToCart = async (req, res) => {
       });
     }
 
-    // ✅ Create with price snapshot
     cartItem = await cartModel.create({
       user: userId,
       product: productId,
@@ -87,18 +80,6 @@ export const addToCart = async (req, res) => {
   }
 };
 
-
-
-/**
- * Get all cart items for logged-in user
- * @route GET /api/cart
- * @access Private (Login required)
- */
-/**
- * Get cart with real-time prices using aggregation
- * @route GET /api/cart
- * @access Private (Login required)
- */
 export const getCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -129,7 +110,6 @@ export const getCart = async (req, res) => {
           "inStock": {
             $gte: ["$productData.variants.stock", "$quantity"],
           },
-          // ✅ SAVINGS CALCULATION
           "savings": {
             $subtract: ["$priceSnapshot.amount", "$productData.variants.price.amount"],
           },
@@ -161,17 +141,17 @@ export const getCart = async (req, res) => {
               },
               size: "$size",
               quantity: "$quantity",
-              priceSnapshot: "$priceSnapshot", // ✅ Original price
-              price: "$currentPrice", // ✅ Current price
+              priceSnapshot: "$priceSnapshot",
+              price: "$currentPrice",
               subtotal: "$subtotal",
               inStock: "$inStock",
-              savings: "$savings", // ✅ Savings amount
-              hasSavings: "$hasSavings", // ✅ Whether savings exist
+              savings: "$savings",
+              hasSavings: "$hasSavings",
             },
           },
           totalItems: { $sum: "$quantity" },
           totalAmount: { $sum: "$subtotal" },
-          totalSavings: { $sum: "$savings" }, // ✅ Total savings
+          totalSavings: { $sum: "$savings" },
         },
       },
       {
@@ -180,7 +160,7 @@ export const getCart = async (req, res) => {
           items: 1,
           totalItems: 1,
           totalAmount: 1,
-          totalSavings: 1, // ✅ Include total savings
+          totalSavings: 1,
         },
       },
     ]);
@@ -214,12 +194,6 @@ export const getCart = async (req, res) => {
   }
 };
 
-
-/**
- * Update cart item quantity
- * @route PUT /api/cart/:id
- * @access Private (Login required)
- */
 export const updateCartItem = async (req, res) => {
   try {
     const { id } = req.params;
@@ -321,12 +295,6 @@ export const updateCartItem = async (req, res) => {
   }
 };
 
-
-/**
- * Remove item from cart
- * @route DELETE /api/cart/:id
- * @access Private (Login required)
- */
 export const removeCartItem = async (req, res) => {
   try {
     const { id } = req.params;
@@ -341,7 +309,6 @@ export const removeCartItem = async (req, res) => {
       });
     }
 
-
     if (cartItem.user.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
@@ -349,7 +316,6 @@ export const removeCartItem = async (req, res) => {
       });
     }
 
-  
     await cartItem.deleteOne();
 
     res.status(200).json({
