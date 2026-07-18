@@ -4,7 +4,6 @@ import { useSelector } from "react-redux";
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useSelector((state) => state.auth);
 
-  // Show loading while checking auth
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -16,17 +15,14 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     );
   }
 
-  // Not logged in → redirect to login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Role check: if allowedRoles is empty, any logged-in user can access
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 
-  // Authorized → render children
   return children;
 };
 

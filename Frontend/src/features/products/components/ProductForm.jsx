@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { Plus, X, ChevronDown, ChevronUp, Image as ImageIcon, Upload } from "lucide-react";
 
 const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
-  // Default form state
   const defaultFormData = {
     title: "",
     description: "",
@@ -34,7 +33,6 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     ],
   };
 
-  // Function to populate form data from initialData
   const populateFormData = (data) => {
     if (!data) return defaultFormData;
     
@@ -76,13 +74,14 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
   const [uploadingImages, setUploadingImages] = useState({});
 
   const fileInputRefs = useRef({});
-useEffect(() => {
-  if (initialData) {
-    const newData = populateFormData(initialData);
-    console.log("🔄 Setting form data:", newData);
-    setFormData(newData);
-  }
-}, [initialData]);
+
+  useEffect(() => {
+    if (initialData) {
+      const newData = populateFormData(initialData);
+      setFormData(newData);
+    }
+  }, [initialData]);
+
   const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -115,10 +114,6 @@ useEffect(() => {
     }));
   };
 
-  useEffect(() => {
-  console.log("📦 ProductForm initialData:", initialData);
-  console.log("📦 ProductForm variants:", initialData?.variants);
-}, [initialData]);
   const handleBadgeChange = (badgeName) => {
     setFormData((prev) => ({
       ...prev,
@@ -138,31 +133,27 @@ useEffect(() => {
     }));
   };
 
-const handleVariantChange = (index, field, value) => {
-  const newVariants = [...formData.variants];
-  
-  // ✅ Create a deep copy of the variant to avoid read-only errors
-  const variantCopy = { ...newVariants[index] };
-  
-  // Handle price fields
-  if (field === "priceAmount") {
-    variantCopy.price = { 
-      ...variantCopy.price, 
-      amount: value 
-    };
-  } else if (field === "priceCurrency") {
-    variantCopy.price = { 
-      ...variantCopy.price, 
-      currency: value 
-    };
-  } else {
-    // Handle other fields (color, colorCode, stock, sku, etc.)
-    variantCopy[field] = value;
-  }
-  
-  newVariants[index] = variantCopy;
-  setFormData((prev) => ({ ...prev, variants: newVariants }));
-};
+  const handleVariantChange = (index, field, value) => {
+    const newVariants = [...formData.variants];
+    const variantCopy = { ...newVariants[index] };
+    
+    if (field === "priceAmount") {
+      variantCopy.price = { 
+        ...variantCopy.price, 
+        amount: value 
+      };
+    } else if (field === "priceCurrency") {
+      variantCopy.price = { 
+        ...variantCopy.price, 
+        currency: value 
+      };
+    } else {
+      variantCopy[field] = value;
+    }
+    
+    newVariants[index] = variantCopy;
+    setFormData((prev) => ({ ...prev, variants: newVariants }));
+  };
 
   const addVariant = () => {
     setFormData((prev) => ({
@@ -195,53 +186,50 @@ const handleVariantChange = (index, field, value) => {
     }
   };
 
- const handleVariantImageUpload = async (index, files) => {
-  const fileArray = Array.from(files).slice(0, 5 - formData.variants[index].images.length);
-  
-  if (fileArray.length === 0) return;
+  const handleVariantImageUpload = async (index, files) => {
+    const fileArray = Array.from(files).slice(0, 5 - formData.variants[index].images.length);
+    
+    if (fileArray.length === 0) return;
 
-  setUploadingImages((prev) => ({ ...prev, [index]: true }));
+    setUploadingImages((prev) => ({ ...prev, [index]: true }));
 
-  const newVariants = [...formData.variants];
-  const newPreviews = [];
+    const newVariants = [...formData.variants];
+    const newPreviews = [];
 
-  for (const file of fileArray) {
-    const preview = URL.createObjectURL(file);
-    newPreviews.push(preview);
+    for (const file of fileArray) {
+      const preview = URL.createObjectURL(file);
+      newPreviews.push(preview);
 
-    const url = await uploadToCloudinary(file);
-    if (url) {
-      // ✅ Create a copy and update images
-      const variantCopy = { ...newVariants[index] };
-      variantCopy.images = [...variantCopy.images, url];
-      newVariants[index] = variantCopy;
+      const url = await uploadToCloudinary(file);
+      if (url) {
+        const variantCopy = { ...newVariants[index] };
+        variantCopy.images = [...variantCopy.images, url];
+        newVariants[index] = variantCopy;
+      }
     }
-  }
 
-  setVariantImagePreviews((prev) => ({
-    ...prev,
-    [index]: [...(prev[index] || []), ...newPreviews],
-  }));
+    setVariantImagePreviews((prev) => ({
+      ...prev,
+      [index]: [...(prev[index] || []), ...newPreviews],
+    }));
 
-  setFormData((prev) => ({ ...prev, variants: newVariants }));
-  setUploadingImages((prev) => ({ ...prev, [index]: false }));
-};
+    setFormData((prev) => ({ ...prev, variants: newVariants }));
+    setUploadingImages((prev) => ({ ...prev, [index]: false }));
+  };
 
   const removeVariantImage = (variantIndex, imageIndex) => {
-  const newVariants = [...formData.variants];
-  
-  // ✅ Create a copy and update images
-  const variantCopy = { ...newVariants[variantIndex] };
-  variantCopy.images = variantCopy.images.filter((_, i) => i !== imageIndex);
-  newVariants[variantIndex] = variantCopy;
-  
-  setVariantImagePreviews((prev) => ({
-    ...prev,
-    [variantIndex]: prev[variantIndex]?.filter((_, i) => i !== imageIndex) || [],
-  }));
-  
-  setFormData((prev) => ({ ...prev, variants: newVariants }));
-};
+    const newVariants = [...formData.variants];
+    const variantCopy = { ...newVariants[variantIndex] };
+    variantCopy.images = variantCopy.images.filter((_, i) => i !== imageIndex);
+    newVariants[variantIndex] = variantCopy;
+    
+    setVariantImagePreviews((prev) => ({
+      ...prev,
+      [variantIndex]: prev[variantIndex]?.filter((_, i) => i !== imageIndex) || [],
+    }));
+    
+    setFormData((prev) => ({ ...prev, variants: newVariants }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();

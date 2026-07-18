@@ -5,29 +5,21 @@ const productApi = axios.create({
   withCredentials: true,
 });
 
-// ============ PUBLIC APIs (No login required) ============
-
-// Get all products for home page
 export const getPublicProducts = async () => {
   const res = await productApi.get("/public");
   return res.data;
 };
 
-// Get single product by ID (public)
 export const getPublicProductById = async (id) => {
   const res = await productApi.get(`/public/${id}`);
   return res.data;
 };
 
-// ============ PROTECTED APIs (Login + Seller only) ============
-
-// Get all products (seller's own products)
 export const getProducts = async () => {
   const res = await productApi.get("/");
   return res.data;
 };
 
-// Get single product (seller's own)
 export const getProductById = async (id) => {
   const res = await productApi.get(`/${id}`);
   return res.data;
@@ -37,7 +29,7 @@ export const getRelatedProducts = async (id, limit = 8) => {
   const res = await productApi.get(`/public/related/${id}?limit=${limit}`);
   return res.data;
 };
-// Create product with images
+
 export const createProduct = async (formData) => {
   const res = await productApi.post("/", formData, {
     headers: {
@@ -47,7 +39,6 @@ export const createProduct = async (formData) => {
   return res.data;
 };
 
-// Update product
 export const updateProduct = async (id, formData) => {
   const res = await productApi.put(`/${id}`, formData, {
     headers: {
@@ -57,13 +48,11 @@ export const updateProduct = async (id, formData) => {
   return res.data;
 };
 
-// Delete product
 export const deleteProduct = async (id) => {
   const res = await productApi.delete(`/${id}`);
   return res.data;
 };
 
-// Add more images to product
 export const addProductImages = async (id, formData) => {
   const res = await productApi.put(`/${id}/add-images`, formData, {
     headers: {
@@ -73,11 +62,9 @@ export const addProductImages = async (id, formData) => {
   return res.data;
 };
 
-// Remove an image from product
 export const removeProductImage = async (id, imageUrl) => {
   const res = await productApi.delete(`/${id}/remove-image`, {
     data: { imageUrl },
   });
   return res.data;
 };
-

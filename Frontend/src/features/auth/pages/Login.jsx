@@ -16,7 +16,6 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // If already logged in, redirect based on role
   useEffect(() => {
     if (user && !authLoading) {
       if (user.role === "seller") {
@@ -42,7 +41,6 @@ function Login() {
 
     try {
       const data = await handleLogin(formData);
-      // Redirect based on role
       if (data?.user?.role === "seller") {
         navigate("/seller/products", { replace: true });
       } else {
@@ -63,7 +61,6 @@ function Login() {
     navigate("/");
   };
 
-  // Show loading while checking auth
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#FBF4E8] flex items-center justify-center">
@@ -75,14 +72,12 @@ function Login() {
     );
   }
 
-  // If already logged in, don't show login page (redirect happens in useEffect)
   if (user) {
     return null;
   }
 
   return (
     <div className="relative min-h-screen bg-[#FBF4E8] flex flex-col">
-      {/* Top nav */}
       <div className="flex items-center justify-between px-6 sm:px-10 py-6 relative z-20 flex-shrink-0">
         <div
           className="flex items-center gap-2 cursor-pointer"
@@ -110,7 +105,6 @@ function Login() {
         </div>
       </div>
 
-      {/* Main content - centered both vertically and horizontally */}
       <div className="flex-1 flex justify-center items-center px-4 relative z-10">
         <form
           onSubmit={handleSubmit}

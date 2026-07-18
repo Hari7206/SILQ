@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
 import PublicProductCard from "../components/PublicProductCard";
 
-
 const PublicProducts = () => {
   const { fetchPublicProducts, products, loading } = useProduct();
   const [searchParams] = useSearchParams();
@@ -16,71 +15,64 @@ const PublicProducts = () => {
     fetchPublicProducts();
   }, []);
 
-useEffect(() => {
-  if (products.length === 0) {
-    setFilteredProducts([]);
-    setMatchedColors({});
-    return;
-  }
+  useEffect(() => {
+    if (products.length === 0) {
+      setFilteredProducts([]);
+      setMatchedColors({});
+      return;
+    }
 
-  const query = searchTerm.toLowerCase().trim();
+    const query = searchTerm.toLowerCase().trim();
 
-  if (!query) {
-    setFilteredProducts(products);
-    setMatchedColors({});
-    return;
-  }
+    if (!query) {
+      setFilteredProducts(products);
+      setMatchedColors({});
+      return;
+    }
 
-  const words = query.split(" ").filter((w) => w.length > 0);
-  const matched = [];
-  const colorMap = {};
+    const words = query.split(" ").filter((w) => w.length > 0);
+    const matched = [];
+    const colorMap = {};
 
-  products.forEach((product) => {
-    let match = false;
-    let matchedColor = null;
+    products.forEach((product) => {
+      let match = false;
+      let matchedColor = null;
 
-    // ✅ Check if ALL words match ANY field
-    const allWordsMatch = words.every((word) => {
-      // Check title
-      if (product.title?.toLowerCase().includes(word)) return true;
-      // Check category
-      if (product.category?.toLowerCase().includes(word)) return true;
-      // Check subCategory
-      if (product.subCategory?.toLowerCase().includes(word)) return true;
-      // Check gender
-      if (product.gender?.toLowerCase().includes(word)) return true;
-      // Check variant colors
-      if (product.variants?.some((v) => v.color?.toLowerCase().includes(word))) {
-        return true;
-      }
-      return false;
-    });
+      const allWordsMatch = words.every((word) => {
+        if (product.title?.toLowerCase().includes(word)) return true;
+        if (product.category?.toLowerCase().includes(word)) return true;
+        if (product.subCategory?.toLowerCase().includes(word)) return true;
+        if (product.gender?.toLowerCase().includes(word)) return true;
+        if (product.variants?.some((v) => v.color?.toLowerCase().includes(word))) {
+          return true;
+        }
+        return false;
+      });
 
-    if (allWordsMatch) {
-      match = true;
-      // Find which color matched (for highlight)
-      for (const word of words) {
-        const foundVariant = product.variants?.find((v) =>
-          v.color?.toLowerCase().includes(word)
-        );
-        if (foundVariant) {
-          matchedColor = foundVariant.color;
-          break;
+      if (allWordsMatch) {
+        match = true;
+        for (const word of words) {
+          const foundVariant = product.variants?.find((v) =>
+            v.color?.toLowerCase().includes(word)
+          );
+          if (foundVariant) {
+            matchedColor = foundVariant.color;
+            break;
+          }
         }
       }
-    }
 
-    if (match) {
-      matched.push(product);
-      if (matchedColor) {
-        colorMap[product._id] = matchedColor;
+      if (match) {
+        matched.push(product);
+        if (matchedColor) {
+          colorMap[product._id] = matchedColor;
+        }
       }
-    }
-  });
+    });
 
-  setFilteredProducts(matched);
-  setMatchedColors(colorMap);
-}, [products, searchTerm]);
+    setFilteredProducts(matched);
+    setMatchedColors(colorMap);
+  }, [products, searchTerm]);
 
   if (loading) {
     return (
@@ -95,8 +87,6 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-white">
-     
-
       <div className="bg-white border-b border-gray-200 px-6 py-10">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl lg:text-4xl font-semibold text-gray-900">

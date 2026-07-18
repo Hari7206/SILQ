@@ -4,7 +4,6 @@ import { ArrowUpRight, Trash2 } from "lucide-react";
 const ProductCard = ({ product, onDelete }) => {
   const navigate = useNavigate();
   
-  // ✅ FIX: Get image from variants
   const mainImage = product.mainImage || product.variants?.[0]?.images?.[0];
   const priceRange = product.priceRange || { min: 0, max: 0 };
   const totalStock = product.totalStock || 0;
@@ -12,7 +11,6 @@ const ProductCard = ({ product, onDelete }) => {
   return (
     <div className="bg-white rounded-[2rem] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col w-full transition-all duration-300 hover:shadow-[0_16px_35px_rgba(0,0,0,0.06)] group">
       
-      {/* Image Container */}
       <div className="relative aspect-square w-full rounded-[1.5rem] overflow-hidden mb-4 bg-[#F5F5F5]">
         {mainImage ? (
           <img 
@@ -26,12 +24,10 @@ const ProductCard = ({ product, onDelete }) => {
           </div>
         )}
 
-        {/* Status Pill Badge */}
         <div className="absolute top-3 left-3 bg-black/45 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-wide">
           {product.isActive ? "Active" : "Inactive"}
         </div>
 
-        {/* Circular Action Badge */}
         <button 
           onClick={(e) => {
             e.stopPropagation();
@@ -43,7 +39,6 @@ const ProductCard = ({ product, onDelete }) => {
           <Trash2 size={13} />
         </button>
 
-        {/* Bottom Image Dots Indicator */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
           <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
           <span className="w-1.5 h-1.5 rounded-full bg-white/40"></span>
@@ -51,7 +46,6 @@ const ProductCard = ({ product, onDelete }) => {
         </div>
       </div>
 
-      {/* Product Information Details */}
       <div className="flex flex-col flex-1 px-1">
         <h3 className="font-bold text-gray-900 text-base tracking-tight mb-0.5 line-clamp-1">
           {product.title}
@@ -61,20 +55,16 @@ const ProductCard = ({ product, onDelete }) => {
           {product.category || "Uncategorized"}
         </p>
         
-        {/* Subtle Description Line */}
         <p className="text-xs text-gray-400/90 font-normal leading-relaxed line-clamp-2 mb-5">
           {product.description || `Stock available: ${totalStock} units. Manage your current listings directly from the interactive control bar.`}
         </p>
 
-        {/* Bottom Action Section */}
         <div className="flex items-center justify-between mt-auto pt-1">
           
-          {/* Price Capsule Label */}
           <div className="bg-[#EEF0F2] text-gray-900 text-xs font-bold px-4 py-2 rounded-full">
             ₹{priceRange.min || "0"}
           </div>
 
-          {/* Primary Action Rounded Button */}
           <button 
             onClick={() => navigate(`/seller/products/edit/${product._id}`)}
             className="bg-black hover:bg-gray-800 text-white text-xs font-bold px-5 py-2.5 rounded-full flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"

@@ -20,12 +20,10 @@ const Navbar = () => {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const searchRef = useRef(null);
 
-  // Don't show navbar on seller pages
   if (location.pathname.startsWith("/seller")) {
     return null;
   }
 
-  // Fetch suggestions when typing
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (searchTerm.length < 2) {
@@ -42,7 +40,6 @@ const Navbar = () => {
         );
         const results = res.data.suggestions || [];
         setSuggestions(results);
-        // ✅ Only show suggestions if there are results
         setShowSuggestions(results.length > 0);
       } catch (error) {
         console.error("Search suggestions error:", error);
@@ -57,7 +54,6 @@ const Navbar = () => {
     return () => clearTimeout(delay);
   }, [searchTerm]);
 
-  // Click outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -87,13 +83,11 @@ const Navbar = () => {
     setShowSuggestions(false);
   };
 
-  // ✅ IMPORTANT: Only show dropdown when ALL conditions are met
   const shouldShowDropdown = showSuggestions && searchTerm.length >= 2 && suggestions.length > 0;
 
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Left: Logo */}
         <div
           onClick={() => navigate("/")}
           className="text-2xl font-black tracking-widest cursor-pointer select-none"
@@ -102,7 +96,6 @@ const Navbar = () => {
           <span className="text-[#F5C451]">LQ</span>
         </div>
 
-        {/* Middle: Search with Suggestions */}
         <div className="flex-1 max-w-md mx-6 relative" ref={searchRef}>
           <div className="relative">
             <Search
@@ -152,7 +145,6 @@ appearance-none
             )}
           </div>
 
-          {/* ✅ Suggestions Dropdown - ONLY shows when there are actual suggestions */}
           {shouldShowDropdown && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-80 overflow-y-auto z-50">
               {isLoadingSuggestions ? (
@@ -224,7 +216,6 @@ appearance-none
           )}
         </div>
 
-        {/* Right Side (Cart + User) */}
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/cart")}

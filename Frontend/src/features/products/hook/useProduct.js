@@ -29,8 +29,6 @@ export const useProduct = () => {
     (state) => state.products
   );
 
-  // ============ PUBLIC APIs ============
-
   const fetchPublicProducts = async () => {
     try {
       dispatch(setLoading(true));
@@ -59,8 +57,6 @@ export const useProduct = () => {
     }
   };
 
-  // ============ PROTECTED APIs (Seller only) ============
-
   const fetchProducts = async () => {
     try {
       dispatch(setLoading(true));
@@ -88,6 +84,7 @@ export const useProduct = () => {
       throw error;
     }
   };
+
   const fetchRelatedProducts = async (id, limit = 8) => {
     try {
       const data = await getRelatedProductsAPI(id, limit);
@@ -97,6 +94,7 @@ export const useProduct = () => {
       return [];
     }
   };
+
   const createNewProduct = async (formData) => {
     try {
       dispatch(setLoading(true));
@@ -175,29 +173,19 @@ export const useProduct = () => {
     dispatch(resetProduct());
   };
 
-  const clearProductError = () => {
-    // dispatch(clearError());
-  };
+  const clearProductError = () => {};
 
   return {
-    // State
     products,
     product,
     loading,
     error,
     success,
-
-    // Public APIs
     fetchPublicProducts,
     fetchPublicProductById,
-
-
-    // Protected APIs
     fetchProducts,
     fetchProductById,
     fetchRelatedProducts,
-
-
     createNewProduct,
     updateExistingProduct,
     deleteExistingProduct,

@@ -10,7 +10,6 @@ const SellerProducts = () => {
   const { products, loading, fetchProducts, deleteExistingProduct } = useProduct();
   const user = useSelector((state) => state.auth.user);
   
-  // State handling real-time search filtering
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -27,7 +26,6 @@ const SellerProducts = () => {
     }
   };
 
-  // Filter products matching title or category strings dynamically
   const filteredProducts = products.filter((product) => {
     const query = searchQuery.toLowerCase();
     return (
@@ -47,7 +45,6 @@ const SellerProducts = () => {
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 pb-20">
       
-      {/* Top Navigation Bar */}
       <div className="max-w-[1400px] mx-auto px-6 pt-6 flex items-center justify-between">
         <div 
           className="text-2xl font-black tracking-widest cursor-pointer select-none" 
@@ -58,7 +55,6 @@ const SellerProducts = () => {
         </div>
       </div>
 
-      {/* Hero Header Section */}
       <div className="max-w-[1400px] mx-auto px-6 pt-4">
         <div className="relative h-[260px] md:h-[340px] w-full rounded-[2rem] overflow-hidden bg-gray-900 flex items-center px-8 md:px-16 shadow-[0_20px_50px_rgba(0,0,0,0.06)]">
           <img 
@@ -78,7 +74,6 @@ const SellerProducts = () => {
           </div>
         </div>
 
-        {/* Floating Action & Search Input Hub */}
         <div className="relative -mt-7 z-20 max-w-2xl mx-auto px-4">
           <div className="bg-white rounded-full shadow-[0_15px_35px_rgba(0,0,0,0.05)] border border-gray-100 p-1.5 flex items-center gap-2">
             <div className="flex-1 flex items-center px-4 gap-3">
@@ -101,7 +96,6 @@ const SellerProducts = () => {
         </div>
       </div>
 
-      {/* Grid Layout Canvas */}
       <div className="max-w-[1400px] mx-auto px-6 mt-16">
         <div className="flex items-end justify-between mb-8 border-b border-gray-100 pb-4">
           <h2 className="text-3xl font-serif italic font-medium text-gray-800 tracking-wide normal-case">

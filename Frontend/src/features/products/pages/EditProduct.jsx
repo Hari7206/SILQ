@@ -113,7 +113,6 @@ const EditProduct = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2">
-            {/* ✅ ADD key={product._id} HERE */}
             {product ? (
               <ProductForm
                 key={product._id}

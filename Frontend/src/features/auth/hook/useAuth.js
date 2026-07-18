@@ -5,7 +5,7 @@ import { registerUser, loginUser, getMe, logoutUser } from "../service/auth.api"
 
 export const useAuth = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // ← ADD THIS
+  const navigate = useNavigate(); 
 
   async function handleRegister({ email, fullname, contact, password, isSeller = false }) {
     try {
@@ -13,7 +13,7 @@ export const useAuth = () => {
       const data = await registerUser({ email, fullname, contact, password, isSeller });
       dispatch(setUser(data.user));
       dispatch(setLoading(false));
-      return data; // ← ADD THIS
+      return data; 
     } catch (error) {
       dispatch(setLoading(false));
       dispatch(setErr(error.response?.data?.message || "Registration failed"));
@@ -27,7 +27,7 @@ export const useAuth = () => {
       const data = await loginUser({ email, password });
       dispatch(setUser(data.user));
       dispatch(setLoading(false));
-      return data; // ← ADD THIS (RETURN THE DATA)
+      return data; 
     } catch (error) {
       dispatch(setLoading(false));
       dispatch(setErr(error.response?.data?.message || "Login failed"));

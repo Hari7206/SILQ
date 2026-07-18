@@ -22,9 +22,6 @@ export const useCart = () => {
     (state) => state.cart
   );
 
-  /**
-   * Fetch cart items from backend
-   */
   const fetchCart = async () => {
     try {
       dispatch(setLoading(true));
@@ -38,15 +35,11 @@ export const useCart = () => {
     }
   };
 
-  /**
-   * Add item to cart
-   */
   const addToCart = async (itemData) => {
     try {
       dispatch(setLoading(true));
       const data = await addToCartAPI(itemData);
       
-      // Format the cart item for Redux
       const cartItem = {
         _id: data.cartItem._id,
         product: {
@@ -76,15 +69,10 @@ export const useCart = () => {
     }
   };
 
-  /**
-   * Update cart item quantity
-   */
   const updateQuantity = async (id, quantity) => {
     try {
       dispatch(setLoading(true));
       const data = await updateCartItemAPI(id, quantity);
-      
-      // Update Redux state
       dispatch(updateCartItemAction({ id, quantity }));
       return data;
     } catch (error) {
@@ -94,9 +82,6 @@ export const useCart = () => {
     }
   };
 
-  /**
-   * Remove item from cart
-   */
   const removeFromCart = async (id) => {
     try {
       dispatch(setLoading(true));
@@ -110,29 +95,20 @@ export const useCart = () => {
     }
   };
 
-  /**
-   * Clear cart
-   */
   const clearCartItems = () => {
     dispatch(clearCart());
   };
 
-  /**
-   * Clear error
-   */
   const clearCartError = () => {
     dispatch(clearError());
   };
 
   return {
-    // State
     items,
     totalItems,
     totalAmount,
     loading,
     error,
-
-    // Actions
     fetchCart,
     addToCart,
     updateQuantity,

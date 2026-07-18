@@ -13,7 +13,6 @@ function ResetPassword() {
   const [isValidToken, setIsValidToken] = useState(false);
   const [verifying, setVerifying] = useState(true);
 
-  // Verify token on load
   useEffect(() => {
     const verifyToken = async () => {
       try {

@@ -15,7 +15,6 @@ import {
   ZoomIn,
 } from "lucide-react";
 
-
 const TABS = ["Details", "Shipping & Returns"];
 
 const PublicProductDetail = () => {
@@ -42,7 +41,6 @@ const PublicProductDetail = () => {
     }
   }, [product]);
 
-  // ✅ FIX: Remove fetchRelatedProducts from dependency array
   useEffect(() => {
     const loadRelated = async () => {
       if (!product?._id) return;
@@ -52,7 +50,7 @@ const PublicProductDetail = () => {
       setRelatedLoading(false);
     };
     loadRelated();
-  }, [product?._id]); // ← Only runs when product ID changes
+  }, [product?._id]);
 
   const nextImage = () => {
     if (selectedVariant?.images?.length) {
@@ -129,9 +127,7 @@ const PublicProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#FBF4E8]">
-    
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Back Button */}
         <button
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition mb-6"
@@ -141,7 +137,6 @@ const PublicProductDetail = () => {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-[88px_1fr_1fr] gap-6">
-          {/* Thumbnail rail */}
           {images.length > 1 && (
             <div className="hidden lg:flex flex-col gap-3 order-1">
               {images.map((img, index) => (
@@ -164,7 +159,6 @@ const PublicProductDetail = () => {
             </div>
           )}
 
-          {/* Main image */}
           <div className="order-2">
             <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden aspect-[4/5]">
               {currentImage ? (
@@ -201,7 +195,6 @@ const PublicProductDetail = () => {
               )}
             </div>
 
-            {/* Mobile thumbnails */}
             {images.length > 1 && (
               <div className="flex lg:hidden gap-3 mt-4 overflow-x-auto pb-2">
                 {images.map((img, index) => (
@@ -219,7 +212,6 @@ const PublicProductDetail = () => {
             )}
           </div>
 
-          {/* Info column */}
           <div className="order-3 space-y-6">
             <div>
               <div className="flex items-center gap-2">
@@ -258,7 +250,6 @@ const PublicProductDetail = () => {
 
             <hr className="border-gray-200" />
 
-            {/* Color Variants */}
             {product.variants?.length > 1 && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">
@@ -287,7 +278,6 @@ const PublicProductDetail = () => {
               </div>
             )}
 
-            {/* Sizes */}
             {product.availableSizes?.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -314,7 +304,6 @@ const PublicProductDetail = () => {
               </div>
             )}
 
-            {/* Stock */}
             <div className="flex items-center gap-2">
               <span
                 className={`text-sm font-medium ${
@@ -325,7 +314,6 @@ const PublicProductDetail = () => {
               </span>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleAddToCart}
@@ -340,7 +328,6 @@ const PublicProductDetail = () => {
               </button>
             </div>
 
-            {/* Trust Badges */}
             {hasBadges && (
               <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-500 pt-1">
                 {product.badges?.freeShipping && (
@@ -373,7 +360,6 @@ const PublicProductDetail = () => {
           </div>
         </div>
 
-        {/* Tabs section */}
         <div className="mt-14 grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div>
             <div className="flex gap-6 border-b border-gray-200">
@@ -407,7 +393,6 @@ const PublicProductDetail = () => {
             </div>
           </div>
 
-          {/* Secondary banner image */}
           {images[1] && (
             <div className="rounded-2xl overflow-hidden bg-gray-900 aspect-[4/3] hidden lg:block">
               <img src={images[1]} alt="" className="w-full h-full object-cover opacity-90" />
@@ -415,7 +400,6 @@ const PublicProductDetail = () => {
           )}
         </div>
 
-        {/* ✅ You May Also Like Section */}
         {!relatedLoading && relatedProducts.length > 0 && (
           <div className="mt-16">
             <div className="flex items-center justify-between mb-6">

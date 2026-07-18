@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 const PublicProductCard = ({ product, highlightColor }) => {
   const navigate = useNavigate();
 
-  // Show the correct color image
   let mainImage = product.mainImage || product.variants?.[0]?.images?.[0];
 
   if (highlightColor) {
@@ -15,7 +14,6 @@ const PublicProductCard = ({ product, highlightColor }) => {
     }
   }
 
-  // ✅ Add fallback image if mainImage is broken
   const imageUrl = mainImage || "https://via.placeholder.com/400x400?text=No+Image";
 
   const priceRange = product.priceRange || { min: 0, max: 0 };
