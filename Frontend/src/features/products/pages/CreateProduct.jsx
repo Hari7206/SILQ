@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import { ChevronRight, Plus } from "lucide-react";
 import { useProduct } from "../hook/useProduct";
 import ProductForm from "../components/ProductForm";
-
+// prodcut
 const CreateProduct = () => {
   const navigate = useNavigate();
   const { createNewProduct, loading, error, resetProductState } = useProduct();
