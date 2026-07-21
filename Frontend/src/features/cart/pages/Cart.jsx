@@ -4,6 +4,7 @@ import { useCart } from "../hook/useCart";
 import { useSelector } from "react-redux";
 import { Trash2, Lock, RefreshCw, Plus, Sparkles } from "lucide-react";
 
+
 const Cart = () => {
   const navigate = useNavigate();
   const { items, totalItems, totalAmount, loading, fetchCart, updateQuantity, removeFromCart } = useCart();
@@ -198,7 +199,9 @@ const Cart = () => {
                 </div>
               </div>
 
-              <button className="w-full bg-[#004d40] hover:bg-[#003d33] text-white font-semibold py-3 rounded-lg transition mt-6">
+              <button className="w-full bg-[#004d40] hover:bg-[#003d33] text-white font-semibold py-3 rounded-lg transition mt-6"
+               onClick={() => navigate("/checkout")}
+              >
                 Proceed to Checkout
               </button>
 

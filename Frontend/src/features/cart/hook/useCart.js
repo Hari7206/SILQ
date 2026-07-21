@@ -7,6 +7,7 @@ import {
   addCartItem,
   updateCartItem as updateCartItemAction,
   removeCartItem as removeCartItemAction,
+
   clearCart,
 } from "../state/cart.slice";
 import {
@@ -14,6 +15,8 @@ import {
   getCart as getCartAPI,
   updateCartItem as updateCartItemAPI,
   removeCartItem as removeCartItemAPI,
+    createOrder as createOrderAPI,      
+  verifyPayment as verifyPaymentAPI,  
 } from "../service/cart.api";
 
 export const useCart = () => {
@@ -103,6 +106,42 @@ export const useCart = () => {
     dispatch(clearError());
   };
 
+    const createOrder = async (address) => {
+    try {
+      dispatch(setLoading(true));
+      const data = await createOrderAPI({ address });
+      dispatch(setLoading(false));
+      return data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || "Failed to create order";
+      dispatch(setError(errorMsg));
+      dispatch(setLoading(false));
+      throw error;
+    }
+  };
+
+
+  const verifyPayment = async (paymentData) => {
+    try {
+      dispatch(setLoading(true));
+      const data = await verifyPaymentAPI(paymentData);
+      
+      // ✅ Clear cart on successful payment
+      if (data.success) {
+        dispatch(clearCart());
+      }
+      
+      dispatch(setLoading(false));
+      return data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || "Payment verification failed";
+      dispatch(setError(errorMsg));
+      dispatch(setLoading(false));
+      throw error;
+    }
+  };
+
+
   return {
     items,
     totalItems,
@@ -115,5 +154,9 @@ export const useCart = () => {
     removeFromCart,
     clearCartItems,
     clearCartError,
+
+
+     createOrder,     
+    verifyPayment,  
   };
 };

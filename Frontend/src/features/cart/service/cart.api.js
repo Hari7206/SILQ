@@ -5,6 +5,13 @@ const cartApi = axios.create({
   withCredentials: true,
 });
 
+
+const checkoutApi = axios.create({
+  baseURL: "http://localhost:3000/api/checkout",
+  withCredentials: true,
+});
+
+
 export const addToCart = async (data) => {
   const res = await cartApi.post("/", data);
   return res.data;
@@ -22,5 +29,18 @@ export const updateCartItem = async (id, quantity) => {
 
 export const removeCartItem = async (id) => {
   const res = await cartApi.delete(`/${id}`);
+  return res.data;
+};
+
+
+ 
+export const createOrder = async (data) => {
+  const res = await checkoutApi.post("/create-order", data);
+  return res.data;
+};
+
+
+export const verifyPayment = async (data) => {
+  const res = await checkoutApi.post("/verify-payment", data);
   return res.data;
 };

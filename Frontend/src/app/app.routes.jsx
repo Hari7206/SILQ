@@ -18,6 +18,10 @@ import CreateProduct from "../features/products/pages/CreateProduct";
 import EditProduct from "../features/products/pages/EditProduct";
 import Cart from "../features/cart/pages/Cart";
 
+
+import Checkout from "../features/cart/pages/Checkout";
+import OrderSuccess from "../features/cart/pages/OrderSuccess";
+
 const AppRoutes = () => {
   const { checkAuth } = useAuth();
   const user = useSelector((state) => state.auth.user);
@@ -64,6 +68,9 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route path="/checkout" element={<Checkout />} />         
+  <Route path="/order-success" element={<OrderSuccess />} />  
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
