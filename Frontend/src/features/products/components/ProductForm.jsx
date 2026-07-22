@@ -266,52 +266,60 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     setFormData((prev) => ({ ...prev, variants: newVariants }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    for (const variant of formData.variants) {
-      if (!variant.color || !variant.mrp?.amount || !variant.price?.amount || !variant.stock) {
-        alert("Each variant must have color, MRP, price, and stock");
-        return;
-      }
+  // Validate variants
+  for (const variant of formData.variants) {
+    if (!variant.color || !variant.mrp?.amount || !variant.price?.amount || !variant.stock) {
+      alert("Each variant must have color, MRP, price, and stock");
+      return;
     }
+  }
 
-    const formDataToSend = new FormData();
+  const formDataToSend = new FormData();
 
-    Object.keys(formData).forEach((key) => {
-      if (key === "variants" || key === "badges" || key === "availableSizes") return;
-      if (key === "occasion" || key === "tags" || key === "careInstructions") {
-        const value = formData[key] ? JSON.stringify(formData[key].split(",").map((s) => s.trim()).filter(Boolean)) : JSON.stringify([]);
-        formDataToSend.append(key, value);
-      } else if (key === "weight") {
-        formDataToSend.append("weight[value]", formData[key]);
-      } else if (key === "weightUnit") {
-        formDataToSend.append("weight[unit]", formData[key]);
-      } else {
-        formDataToSend.append(key, formData[key]);
-      }
-    });
+  // Handle regular fields
+  Object.keys(formData).forEach((key) => {
+    if (key === "variants" || key === "badges" || key === "availableSizes") return;
+    if (key === "occasion" || key === "tags" || key === "careInstructions") {
+      const value = formData[key] ? JSON.stringify(formData[key].split(",").map((s) => s.trim()).filter(Boolean)) : JSON.stringify([]);
+      formDataToSend.append(key, value);
+    } else if (key === "weight") {
+      // FIX: Send weight as JSON string
+      formDataToSend.append("weight", JSON.stringify({ 
+        value: parseFloat(formData[key]) || 0, 
+        unit: formData.weightUnit || "kg" 
+      }));
+    } else if (key === "weightUnit") {
+      // Skip this - it's handled above
+      return;
+    } else {
+      formDataToSend.append(key, formData[key]);
+    }
+  });
 
-    formDataToSend.append("availableSizes", JSON.stringify(formData.availableSizes));
-    formDataToSend.append("badges", JSON.stringify(formData.badges));
+  formDataToSend.append("availableSizes", JSON.stringify(formData.availableSizes));
+  formDataToSend.append("badges", JSON.stringify(formData.badges));
 
-    const variantsToSend = formData.variants.map((v) => ({
-      ...v,
-      mrp: {
-        amount: parseFloat(v.mrp.amount),
-        currency: v.mrp.currency || "INR",
-      },
-      price: {
-        amount: parseFloat(v.price.amount),
-        currency: v.price.currency || "INR",
-      },
-      stock: parseInt(v.stock),
-      images: v.images || [],
-    }));
-    formDataToSend.append("variants", JSON.stringify(variantsToSend));
+  // Handle variants
+  const variantsToSend = formData.variants.map((v) => ({
+    ...v,
+    mrp: {
+      amount: parseFloat(v.mrp.amount),
+      currency: v.mrp.currency || "INR",
+    },
+    price: {
+      amount: parseFloat(v.price.amount),
+      currency: v.price.currency || "INR",
+    },
+    stock: parseInt(v.stock) || 0,
+    images: v.images || [],
+  }));
+  formDataToSend.append("variants", JSON.stringify(variantsToSend));
 
-    onSubmit(formDataToSend);
-  };
+  await onSubmit(formDataToSend);
+};
 
   const inputClass =
     "w-full border border-gray-200 bg-gray-50/60 px-3.5 py-2.5 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#F5C451]/40 focus:border-[#F5C451] outline-none transition";

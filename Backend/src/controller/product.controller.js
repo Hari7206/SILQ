@@ -2,6 +2,9 @@ import productModel from "../model/product.model.js";
 
 export const createProduct = async (req, res) => {
   try {
+    console.log("Received body:", req.body);
+    console.log("Received files:", req.files);
+    console.log("Variants from body:", req.body.variants);
     const {
       title,
       description,

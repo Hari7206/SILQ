@@ -1,5 +1,56 @@
+// validator/product.validator.js
 import { body, param } from "express-validator";
 import { validateRequest } from "./auth.validator.js";
+
+// Custom validator to check if field is array or valid JSON string
+const isArrayOrJSONString = (value) => {
+  if (Array.isArray(value)) return true;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+};
+
+// Custom validator to parse and validate variant data
+const validateVariants = (value, { req }) => {
+  let variants = value;
+  
+  // Parse if it's a string
+  if (typeof value === 'string') {
+    try {
+      variants = JSON.parse(value);
+    } catch {
+      throw new Error('Variants must be a valid JSON array');
+    }
+  }
+  
+  // Check if it's an array
+  if (!Array.isArray(variants) || variants.length === 0) {
+    throw new Error('At least one variant is required');
+  }
+  
+  // Validate each variant
+  for (const [index, variant] of variants.entries()) {
+    if (!variant.color) {
+      throw new Error(`Variant at index ${index} is missing color`);
+    }
+    if (!variant.price?.amount) {
+      throw new Error(`Variant at index ${index} is missing price amount`);
+    }
+    if (variant.stock === undefined || variant.stock === null) {
+      throw new Error(`Variant at index ${index} is missing stock`);
+    }
+  }
+  
+  // Store parsed variants back to req.body for controller
+  req.body.variants = variants;
+  return true;
+};
 
 export const validateCreateProduct = [
   body("title")
@@ -27,36 +78,61 @@ export const validateCreateProduct = [
     .isIn(["Men", "Women", "Kids", "Unisex"])
     .withMessage("Invalid gender"),
 
+  // Use custom validator for variants
   body("variants")
     .notEmpty()
     .withMessage("Variants are required")
-    .isArray({ min: 1 })
-    .withMessage("At least one variant is required"),
+    .custom(validateVariants),
 
-  body("variants.*.color")
-    .notEmpty()
-    .withMessage("Variant color is required"),
+  // Handle weight as JSON string
+  body("weight")
+    .optional()
+    .custom((value) => {
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          if (typeof parsed === 'object' && parsed !== null) {
+            return true;
+          }
+        } catch {}
+      }
+      return true; // Allow empty weight
+    }),
 
-  body("variants.*.price.amount")
-    .notEmpty()
-    .withMessage("Variant price is required")
-    .isNumeric()
-    .withMessage("Price must be a number")
-    .isFloat({ min: 0 })
-    .withMessage("Price cannot be negative"),
+  // Handle availableSizes as JSON string
+  body("availableSizes")
+    .optional()
+    .custom((value) => {
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          if (Array.isArray(parsed)) {
+            return true;
+          }
+        } catch {}
+      }
+      return true; // Allow empty
+    }),
 
-  body("variants.*.stock")
-    .notEmpty()
-    .withMessage("Variant stock is required")
-    .isNumeric()
-    .withMessage("Stock must be a number")
-    .isInt({ min: 0 })
-    .withMessage("Stock cannot be negative"),
+  // Handle badges as JSON string
+  body("badges")
+    .optional()
+    .custom((value) => {
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          if (typeof parsed === 'object' && parsed !== null) {
+            return true;
+          }
+        } catch {}
+      }
+      return true;
+    }),
 
   validateRequest,
 ];
 
-// Validate update product
+// Update similar for validateUpdateProduct
 export const validateUpdateProduct = [
   param("id")
     .isMongoId()
@@ -86,27 +162,9 @@ export const validateUpdateProduct = [
 
   body("variants")
     .optional()
-    .isArray({ min: 1 })
-    .withMessage("At least one variant is required"),
+    .custom(validateVariants),
 
-  body("variants.*.color")
-    .optional()
-    .notEmpty()
-    .withMessage("Variant color is required"),
-
-  body("variants.*.price.amount")
-    .optional()
-    .isNumeric()
-    .withMessage("Price must be a number")
-    .isFloat({ min: 0 })
-    .withMessage("Price cannot be negative"),
-
-  body("variants.*.stock")
-    .optional()
-    .isNumeric()
-    .withMessage("Stock must be a number")
-    .isInt({ min: 0 })
-    .withMessage("Stock cannot be negative"),
+  // Add other JSON field handlers...
 
   validateRequest,
 ];
@@ -115,7 +173,6 @@ export const validateDeleteProduct = [
   param("id")
     .isMongoId()
     .withMessage("Invalid product ID"),
-
   validateRequest,
 ];
 
@@ -123,6 +180,5 @@ export const validateGetProduct = [
   param("id")
     .isMongoId()
     .withMessage("Invalid product ID"),
-
   validateRequest,
 ];
