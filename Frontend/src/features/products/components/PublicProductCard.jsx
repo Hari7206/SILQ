@@ -19,9 +19,10 @@ const PublicProductCard = ({ product, highlightColor }) => {
   const priceRange = product.priceRange || { min: 0, max: 0 };
   const hasPriceRange = priceRange.min !== priceRange.max;
   const totalStock = product.totalStock || 0;
+  const maxDiscount = product.maxDiscount || 0;
 
   const handleClick = () => {
-    navigate(`/products/${product._id}`);
+    navigate(`/products/${product.slug || product._id}`);
   };
 
   return (
@@ -39,6 +40,11 @@ const PublicProductCard = ({ product, highlightColor }) => {
             e.target.src = "https://via.placeholder.com/400x400?text=No+Image";
           }}
         />
+        {maxDiscount > 0 && (
+          <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+            {Math.round(maxDiscount)}% OFF
+          </span>
+        )}
         {totalStock === 0 && (
           <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-medium px-3 py-1 rounded-full">
             Out of Stock
@@ -57,7 +63,16 @@ const PublicProductCard = ({ product, highlightColor }) => {
       </div>
 
       <div className="p-4">
-        <h3 className="font-semibold text-gray-800 text-lg truncate">{product.title}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-gray-800 text-lg truncate flex-1">
+            {product.title}
+          </h3>
+          {product.brand && (
+            <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+              {product.brand}
+            </span>
+          )}
+        </div>
         <p className="text-sm text-gray-500 mt-1">{product.category}</p>
 
         <div className="flex items-center justify-between mt-2">
@@ -72,6 +87,11 @@ const PublicProductCard = ({ product, highlightColor }) => {
               <span className="text-lg font-bold text-gray-900">₹{priceRange.min}</span>
             )}
             <span className="text-xs text-gray-400 ml-1">INR</span>
+            {maxDiscount > 0 && (
+              <span className="ml-2 text-xs text-red-500 font-bold">
+                {Math.round(maxDiscount)}% OFF
+              </span>
+            )}
           </div>
 
           {product.variants?.length > 1 && (

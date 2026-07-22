@@ -30,7 +30,9 @@ const SellerProducts = () => {
     const query = searchQuery.toLowerCase();
     return (
       product.title?.toLowerCase().includes(query) ||
-      product.category?.toLowerCase().includes(query)
+      product.category?.toLowerCase().includes(query) ||
+      product.brand?.toLowerCase().includes(query) ||
+      product.tags?.some((tag) => tag.toLowerCase().includes(query))
     );
   });
 

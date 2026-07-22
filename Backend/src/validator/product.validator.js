@@ -1,7 +1,6 @@
 import { body, param } from "express-validator";
 import { validateRequest } from "./auth.validator.js";
 
-// Validate create product
 export const validateCreateProduct = [
   body("title")
     .notEmpty()
@@ -112,7 +111,6 @@ export const validateUpdateProduct = [
   validateRequest,
 ];
 
-// Validate delete product
 export const validateDeleteProduct = [
   param("id")
     .isMongoId()
@@ -121,7 +119,6 @@ export const validateDeleteProduct = [
   validateRequest,
 ];
 
-// Validate get product by ID
 export const validateGetProduct = [
   param("id")
     .isMongoId()

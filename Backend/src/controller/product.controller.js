@@ -8,6 +8,13 @@ export const createProduct = async (req, res) => {
       category,
       subCategory,
       gender,
+      brand,
+      tags,
+      weight,
+      countryOfOrigin,
+      careInstructions,
+      seoTitle,
+      seoDescription,
       variants,
       availableSizes,
       fabric,
@@ -45,7 +52,6 @@ export const createProduct = async (req, res) => {
 
     if (req.files && req.files.length > 0) {
       const uploadedUrls = req.files.map((file) => file.path);
-
       parsedVariants.forEach((variant, index) => {
         if (uploadedUrls[index]) {
           variant.images = [uploadedUrls[index]];
@@ -54,10 +60,10 @@ export const createProduct = async (req, res) => {
     }
 
     for (const variant of parsedVariants) {
-      if (!variant.color || !variant.price?.amount || variant.stock === undefined) {
+      if (!variant.color || !variant.mrp?.amount || !variant.price?.amount || variant.stock === undefined) {
         return res.status(400).json({
           success: false,
-          message: "Each variant must have color, price, and stock",
+          message: "Each variant must have color, MRP, price, and stock",
         });
       }
     }
@@ -83,6 +89,33 @@ export const createProduct = async (req, res) => {
       }
     }
 
+    let parsedWeight = weight;
+    if (typeof weight === "string") {
+      try {
+        parsedWeight = JSON.parse(weight);
+      } catch {
+        parsedWeight = { value: 0, unit: "kg" };
+      }
+    }
+
+    let parsedCareInstructions = careInstructions;
+    if (typeof careInstructions === "string") {
+      try {
+        parsedCareInstructions = JSON.parse(careInstructions);
+      } catch {
+        parsedCareInstructions = [];
+      }
+    }
+
+    let parsedTags = tags;
+    if (typeof tags === "string") {
+      try {
+        parsedTags = JSON.parse(tags);
+      } catch {
+        parsedTags = [];
+      }
+    }
+
     const mainImage = parsedVariants[0]?.images?.[0] || null;
 
     const cleanedVariants = parsedVariants.map((v) => ({
@@ -96,12 +129,19 @@ export const createProduct = async (req, res) => {
       category,
       subCategory: subCategory || null,
       gender: gender || "Unisex",
+      brand: brand || null,
       mainImage,
       variants: cleanedVariants,
       availableSizes: parsedSizes || [],
       fabric: fabric || null,
       occasion: occasion || [],
+      tags: parsedTags || [],
+      weight: parsedWeight || { value: 0, unit: "kg" },
+      countryOfOrigin: countryOfOrigin || "India",
+      careInstructions: parsedCareInstructions || [],
       badges: parsedBadges,
+      seoTitle: seoTitle || null,
+      seoDescription: seoDescription || null,
       isActive: isActive !== undefined ? isActive : true,
       isFeatured: isFeatured || false,
       seller: req.user._id,
@@ -129,6 +169,8 @@ export const getProducts = async (req, res) => {
       ...p.toObject(),
       priceRange: p.priceRange,
       totalStock: p.totalStock,
+      maxDiscount: p.maxDiscount,
+      bestDeal: p.bestDeal,
     }));
 
     res.status(200).json({
@@ -200,6 +242,13 @@ export const updateProduct = async (req, res) => {
       category,
       subCategory,
       gender,
+      brand,
+      tags,
+      weight,
+      countryOfOrigin,
+      careInstructions,
+      seoTitle,
+      seoDescription,
       variants,
       availableSizes,
       fabric,
@@ -226,10 +275,10 @@ export const updateProduct = async (req, res) => {
 
     if (parsedVariants && parsedVariants.length > 0) {
       for (const variant of parsedVariants) {
-        if (!variant.color || !variant.price?.amount || variant.stock === undefined) {
+        if (!variant.color || !variant.mrp?.amount || !variant.price?.amount || variant.stock === undefined) {
           return res.status(400).json({
             success: false,
-            message: "Each variant must have color, price, and stock",
+            message: "Each variant must have color, MRP, price, and stock",
           });
         }
       }
@@ -270,11 +319,45 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    let parsedWeight = weight;
+    if (typeof weight === "string") {
+      try {
+        parsedWeight = JSON.parse(weight);
+      } catch {
+        parsedWeight = { value: 0, unit: "kg" };
+      }
+    }
+
+    let parsedCareInstructions = careInstructions;
+    if (typeof careInstructions === "string") {
+      try {
+        parsedCareInstructions = JSON.parse(careInstructions);
+      } catch {
+        parsedCareInstructions = [];
+      }
+    }
+
+    let parsedTags = tags;
+    if (typeof tags === "string") {
+      try {
+        parsedTags = JSON.parse(tags);
+      } catch {
+        parsedTags = [];
+      }
+    }
+
     if (title) product.title = title;
     if (description) product.description = description;
     if (category) product.category = category;
     if (subCategory !== undefined) product.subCategory = subCategory;
     if (gender) product.gender = gender;
+    if (brand !== undefined) product.brand = brand;
+    if (parsedTags) product.tags = parsedTags;
+    if (parsedWeight) product.weight = parsedWeight;
+    if (countryOfOrigin !== undefined) product.countryOfOrigin = countryOfOrigin;
+    if (parsedCareInstructions) product.careInstructions = parsedCareInstructions;
+    if (seoTitle !== undefined) product.seoTitle = seoTitle;
+    if (seoDescription !== undefined) product.seoDescription = seoDescription;
     if (fabric !== undefined) product.fabric = fabric;
     if (parsedSizes.length > 0) product.availableSizes = parsedSizes;
     if (parsedOccasion.length > 0) product.occasion = parsedOccasion;
@@ -323,13 +406,11 @@ export const addProductImages = async (req, res) => {
       });
     }
 
-    const newImages = req.files.map((file, index) => ({
-      url: file.path,
-      alt: req.body.altTexts?.[index] || `Product image ${index + 1}`,
-      isMain: false,
-    }));
+    const newImages = req.files.map((file) => file.path);
+    if (product.variants.length > 0) {
+      product.variants[0].images.push(...newImages);
+    }
 
-    product.images.push(...newImages);
     await product.save();
 
     res.status(200).json({
@@ -373,9 +454,15 @@ export const removeProductImage = async (req, res) => {
       });
     }
 
-    product.images = product.images.filter(
-      (img) => img.url !== imageUrl
-    );
+    if (product.variants.length > 0) {
+      product.variants[0].images = product.variants[0].images.filter(
+        (img) => img !== imageUrl
+      );
+      if (product.mainImage === imageUrl) {
+        product.mainImage = product.variants[0]?.images?.[0] || null;
+      }
+    }
+
     await product.save();
 
     res.status(200).json({
@@ -437,6 +524,8 @@ export const getPublicProducts = async (req, res) => {
       ...p.toObject(),
       priceRange: p.priceRange,
       totalStock: p.totalStock,
+      maxDiscount: p.maxDiscount,
+      bestDeal: p.bestDeal,
     }));
 
     res.status(200).json({
@@ -474,10 +563,15 @@ export const getPublicProductById = async (req, res) => {
       });
     }
 
+    product.viewCount += 1;
+    await product.save();
+
     const productWithVirtuals = {
       ...product.toObject(),
       priceRange: product.priceRange,
       totalStock: product.totalStock,
+      maxDiscount: product.maxDiscount,
+      bestDeal: product.bestDeal,
     };
 
     res.status(200).json({
@@ -515,6 +609,8 @@ export const getSearchSuggestions = async (req, res) => {
         { category: { $regex: word, $options: "i" } },
         { subCategory: { $regex: word, $options: "i" } },
         { gender: { $regex: word, $options: "i" } },
+        { brand: { $regex: word, $options: "i" } },
+        { tags: { $regex: word, $options: "i" } },
         { "variants.color": { $regex: word, $options: "i" } }
       );
     }
@@ -524,7 +620,7 @@ export const getSearchSuggestions = async (req, res) => {
         isActive: true,
         $and: words.map(() => ({ $or: searchConditions })),
       })
-      .select("title category subCategory gender mainImage variants")
+      .select("title category subCategory gender brand mainImage variants tags")
       .limit(10)
       .lean();
 
@@ -545,6 +641,12 @@ export const getSearchSuggestions = async (req, res) => {
         } else if (product.gender?.toLowerCase().includes(word)) {
           matchCount++;
           matchedFields.push("gender");
+        } else if (product.brand?.toLowerCase().includes(word)) {
+          matchCount++;
+          matchedFields.push("brand");
+        } else if (product.tags?.some(t => t.toLowerCase().includes(word))) {
+          matchCount++;
+          matchedFields.push("tags");
         } else if (product.variants?.some(v => v.color?.toLowerCase().includes(word))) {
           matchCount++;
           matchedFields.push("color");
@@ -557,6 +659,7 @@ export const getSearchSuggestions = async (req, res) => {
         category: product.category,
         subCategory: product.subCategory,
         gender: product.gender,
+        brand: product.brand,
         mainImage: product.mainImage || product.variants?.[0]?.images?.[0] || null,
         matchCount,
         matchedFields: [...new Set(matchedFields)],
@@ -581,19 +684,6 @@ export const getSearchSuggestions = async (req, res) => {
   }
 };
 
-function getMatchingField(product, query) {
-  const fields = ["title", "category", "subCategory", "gender"];
-  for (const field of fields) {
-    if (product[field]?.toLowerCase().includes(query)) {
-      return field;
-    }
-  }
-  if (product.variants?.some(v => v.color?.toLowerCase().includes(query))) {
-    return "color";
-  }
-  return "title";
-}
-
 export const getRelatedProducts = async (req, res) => {
   try {
     const { id } = req.params;
@@ -615,6 +705,7 @@ export const getRelatedProducts = async (req, res) => {
           { category: currentProduct.category },
           { gender: currentProduct.gender },
           { subCategory: currentProduct.subCategory },
+          { brand: currentProduct.brand },
         ],
       })
       .select("-__v")
@@ -626,6 +717,8 @@ export const getRelatedProducts = async (req, res) => {
       ...p.toObject(),
       priceRange: p.priceRange,
       totalStock: p.totalStock,
+      maxDiscount: p.maxDiscount,
+      bestDeal: p.bestDeal,
     }));
 
     res.status(200).json({
@@ -639,6 +732,46 @@ export const getRelatedProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while fetching related products",
+    });
+  }
+};
+
+export const getPublicProductBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const product = await productModel
+      .findOne({ slug: slug, isActive: true })
+      .select("-__v")
+      .populate("seller", "fullname email");
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    product.viewCount += 1;
+    await product.save();
+
+    const productWithVirtuals = {
+      ...product.toObject(),
+      priceRange: product.priceRange,
+      totalStock: product.totalStock,
+      maxDiscount: product.maxDiscount,
+      bestDeal: product.bestDeal,
+    };
+
+    res.status(200).json({
+      success: true,
+      product: productWithVirtuals,
+    });
+  } catch (error) {
+    console.error("Get public product by slug error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching product",
     });
   }
 };

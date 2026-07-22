@@ -5,15 +5,29 @@ const productApi = axios.create({
   withCredentials: true,
 });
 
+// ============ PUBLIC APIs ============
+
 export const getPublicProducts = async () => {
   const res = await productApi.get("/public");
   return res.data;
 };
 
 export const getPublicProductById = async (id) => {
-  const res = await productApi.get(`/public/${id}`);
+  const res = await productApi.get(`/public/id/${id}`);
   return res.data;
 };
+
+export const getPublicProductBySlug = async (slug) => {
+  const res = await productApi.get(`/public/slug/${slug}`);
+  return res.data;
+};
+
+export const getRelatedProducts = async (id, limit = 8) => {
+  const res = await productApi.get(`/public/related/${id}?limit=${limit}`);
+  return res.data;
+};
+
+// ============ PROTECTED APIs (Seller only) ============
 
 export const getProducts = async () => {
   const res = await productApi.get("/");
@@ -22,11 +36,6 @@ export const getProducts = async () => {
 
 export const getProductById = async (id) => {
   const res = await productApi.get(`/${id}`);
-  return res.data;
-};
-
-export const getRelatedProducts = async (id, limit = 8) => {
-  const res = await productApi.get(`/public/related/${id}?limit=${limit}`);
   return res.data;
 };
 

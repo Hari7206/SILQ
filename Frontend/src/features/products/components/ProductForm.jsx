@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Plus, X, ChevronDown, ChevronUp, Image as ImageIcon, Upload } from "lucide-react";
 
@@ -8,6 +9,14 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     category: "",
     subCategory: "",
     gender: "Men",
+    brand: "",
+    tags: "",
+    weight: "",
+    weightUnit: "kg",
+    countryOfOrigin: "India",
+    careInstructions: "",
+    seoTitle: "",
+    seoDescription: "",
     availableSizes: [],
     fabric: "",
     occasion: "",
@@ -24,6 +33,7 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
       {
         color: "",
         colorCode: "",
+        mrp: { amount: "", currency: "INR" },
         price: { amount: "", currency: "INR" },
         stock: "",
         images: [],
@@ -42,6 +52,14 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
       category: data.category || "",
       subCategory: data.subCategory || "",
       gender: data.gender || "Men",
+      brand: data.brand || "",
+      tags: data.tags?.join(", ") || "",
+      weight: data.weight?.value || "",
+      weightUnit: data.weight?.unit || "kg",
+      countryOfOrigin: data.countryOfOrigin || "India",
+      careInstructions: data.careInstructions?.join(", ") || "",
+      seoTitle: data.seoTitle || "",
+      seoDescription: data.seoDescription || "",
       availableSizes: data.availableSizes || [],
       fabric: data.fabric || "",
       occasion: data.occasion?.join(", ") || "",
@@ -54,10 +72,15 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
         freeShipping: data.badges?.freeShipping || false,
         authenticProduct: data.badges?.authenticProduct || false,
       },
-      variants: data.variants && data.variants.length > 0 ? data.variants : [
+      variants: data.variants && data.variants.length > 0 ? data.variants.map(v => ({
+        ...v,
+        mrp: v.mrp || { amount: "", currency: "INR" },
+        price: v.price || { amount: "", currency: "INR" },
+      })) : [
         {
           color: "",
           colorCode: "",
+          mrp: { amount: "", currency: "INR" },
           price: { amount: "", currency: "INR" },
           stock: "",
           images: [],
@@ -105,6 +128,7 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
 
   const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL"];
   const currencyOptions = ["INR", "USD", "EUR", "GBP"];
+  const weightUnitOptions = ["kg", "g", "lb", "oz"];
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -137,7 +161,17 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     const newVariants = [...formData.variants];
     const variantCopy = { ...newVariants[index] };
     
-    if (field === "priceAmount") {
+    if (field === "mrpAmount") {
+      variantCopy.mrp = { 
+        ...variantCopy.mrp, 
+        amount: value 
+      };
+    } else if (field === "mrpCurrency") {
+      variantCopy.mrp = { 
+        ...variantCopy.mrp, 
+        currency: value 
+      };
+    } else if (field === "priceAmount") {
       variantCopy.price = { 
         ...variantCopy.price, 
         amount: value 
@@ -163,6 +197,7 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
         {
           color: "",
           colorCode: "",
+          mrp: { amount: "", currency: "INR" },
           price: { amount: "", currency: "INR" },
           stock: "",
           images: [],
@@ -235,8 +270,8 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     e.preventDefault();
 
     for (const variant of formData.variants) {
-      if (!variant.color || !variant.price.amount || !variant.stock) {
-        alert("Each variant must have color, price, and stock");
+      if (!variant.color || !variant.mrp?.amount || !variant.price?.amount || !variant.stock) {
+        alert("Each variant must have color, MRP, price, and stock");
         return;
       }
     }
@@ -245,9 +280,13 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
 
     Object.keys(formData).forEach((key) => {
       if (key === "variants" || key === "badges" || key === "availableSizes") return;
-      if (key === "occasion") {
+      if (key === "occasion" || key === "tags" || key === "careInstructions") {
         const value = formData[key] ? JSON.stringify(formData[key].split(",").map((s) => s.trim()).filter(Boolean)) : JSON.stringify([]);
         formDataToSend.append(key, value);
+      } else if (key === "weight") {
+        formDataToSend.append("weight[value]", formData[key]);
+      } else if (key === "weightUnit") {
+        formDataToSend.append("weight[unit]", formData[key]);
       } else {
         formDataToSend.append(key, formData[key]);
       }
@@ -258,9 +297,13 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
 
     const variantsToSend = formData.variants.map((v) => ({
       ...v,
+      mrp: {
+        amount: parseFloat(v.mrp.amount),
+        currency: v.mrp.currency || "INR",
+      },
       price: {
         amount: parseFloat(v.price.amount),
-        currency: v.price.currency,
+        currency: v.price.currency || "INR",
       },
       stock: parseInt(v.stock),
       images: v.images || [],
@@ -347,12 +390,23 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
               <option value="Unisex">Unisex</option>
             </select>
           </div>
+          <div>
+            <label className={labelClass}>Brand</label>
+            <input
+              type="text"
+              name="brand"
+              value={formData.brand}
+              onChange={handleChange}
+              placeholder="e.g., SILQ Heritage"
+              className={inputClass}
+            />
+          </div>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Variants (Color, MRP, Price, Stock) *</h3>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-900">Variants (Color, Price, Stock) *</h3>
           <button
             type="button"
             onClick={addVariant}
@@ -433,6 +487,32 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
                         />
                       )}
                     </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">MRP *</label>
+                    <input
+                      type="number"
+                      value={variant.mrp.amount}
+                      onChange={(e) => handleVariantChange(index, "mrpAmount", e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Currency</label>
+                    <select
+                      value={variant.mrp.currency}
+                      onChange={(e) => handleVariantChange(index, "mrpCurrency", e.target.value)}
+                      className={inputClass}
+                    >
+                      {currencyOptions.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -610,6 +690,98 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
               onChange={handleChange}
               placeholder="Wedding, Festival, Party"
               className={inputClass}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className={labelClass}>Tags</label>
+            <input
+              type="text"
+              name="tags"
+              value={formData.tags}
+              onChange={handleChange}
+              placeholder="silk, handcrafted, wedding"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Country of Origin</label>
+            <input
+              type="text"
+              name="countryOfOrigin"
+              value={formData.countryOfOrigin}
+              onChange={handleChange}
+              placeholder="India"
+              className={inputClass}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className={labelClass}>Weight</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                name="weight"
+                value={formData.weight}
+                onChange={handleChange}
+                min="0"
+                step="0.1"
+                placeholder="0.5"
+                className={`${inputClass} flex-1`}
+              />
+              <div className="flex-shrink-0">
+                <select
+                  name="weightUnit"
+                  value={formData.weightUnit}
+                  onChange={handleChange}
+                  className={`${inputClass} w-20`}
+                >
+                  {weightUnitOptions.map((unit) => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>Care Instructions</label>
+            <input
+              type="text"
+              name="careInstructions"
+              value={formData.careInstructions}
+              onChange={handleChange}
+              placeholder="Dry clean only, Store in cool place"
+              className={inputClass}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">SEO</h3>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>SEO Title</label>
+            <input
+              type="text"
+              name="seoTitle"
+              value={formData.seoTitle}
+              onChange={handleChange}
+              placeholder="Buy Premium Silk Kurta Online | SILQ"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>SEO Description</label>
+            <textarea
+              name="seoDescription"
+              rows="2"
+              value={formData.seoDescription}
+              onChange={handleChange}
+              placeholder="Handcrafted pure silk kurta for weddings and festivals..."
+              className={`${inputClass} resize-none`}
             />
           </div>
         </div>

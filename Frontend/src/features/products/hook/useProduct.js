@@ -21,6 +21,7 @@ import {
   getPublicProducts as getPublicProductsAPI,
   getPublicProductById as getPublicProductByIdAPI,
   getRelatedProducts as getRelatedProductsAPI,
+    getPublicProductBySlug as getPublicProductBySlugAPI,
 } from "../service/product.api";
 
 export const useProduct = () => {
@@ -29,6 +30,19 @@ export const useProduct = () => {
     (state) => state.products
   );
 
+    const fetchPublicProductBySlug = async (slug) => {
+    try {
+      dispatch(setLoading(true));
+      const data = await getPublicProductBySlugAPI(slug);
+      dispatch(setProduct(data.product));
+      dispatch(setLoading(false));
+      return data;
+    } catch (error) {
+      dispatch(setError(error.response?.data?.message || "Failed to fetch product"));
+      dispatch(setLoading(false));
+      throw error;
+    }
+  };
   const fetchPublicProducts = async () => {
     try {
       dispatch(setLoading(true));
@@ -183,6 +197,7 @@ export const useProduct = () => {
     success,
     fetchPublicProducts,
     fetchPublicProductById,
+     fetchPublicProductBySlug,
     fetchProducts,
     fetchProductById,
     fetchRelatedProducts,

@@ -7,6 +7,7 @@ const ProductCard = ({ product, onDelete }) => {
   const mainImage = product.mainImage || product.variants?.[0]?.images?.[0];
   const priceRange = product.priceRange || { min: 0, max: 0 };
   const totalStock = product.totalStock || 0;
+  const discount = product.discountPercentage || 0;
 
   return (
     <div className="bg-white rounded-[2rem] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col w-full transition-all duration-300 hover:shadow-[0_16px_35px_rgba(0,0,0,0.06)] group">
@@ -24,7 +25,13 @@ const ProductCard = ({ product, onDelete }) => {
           </div>
         )}
 
-        <div className="absolute top-3 left-3 bg-black/45 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-wide">
+        {discount > 0 && (
+          <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-wide">
+            {Math.round(discount)}% OFF
+          </div>
+        )}
+
+        <div className="absolute top-3 right-3 bg-black/45 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-wide">
           {product.isActive ? "Active" : "Inactive"}
         </div>
 
@@ -47,22 +54,36 @@ const ProductCard = ({ product, onDelete }) => {
       </div>
 
       <div className="flex flex-col flex-1 px-1">
-        <h3 className="font-bold text-gray-900 text-base tracking-tight mb-0.5 line-clamp-1">
-          {product.title}
-        </h3>
+        <div className="flex items-center gap-2 mb-0.5">
+          <h3 className="font-bold text-gray-900 text-base tracking-tight line-clamp-1 flex-1">
+            {product.title}
+          </h3>
+          {product.brand && (
+            <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+              {product.brand}
+            </span>
+          )}
+        </div>
         
         <p className="text-xs text-gray-400 font-medium mb-1">
           {product.category || "Uncategorized"}
         </p>
         
         <p className="text-xs text-gray-400/90 font-normal leading-relaxed line-clamp-2 mb-5">
-          {product.description || `Stock available: ${totalStock} units. Manage your current listings directly from the interactive control bar.`}
+          {product.description || `Stock available: ${totalStock} units.`}
         </p>
 
         <div className="flex items-center justify-between mt-auto pt-1">
           
-          <div className="bg-[#EEF0F2] text-gray-900 text-xs font-bold px-4 py-2 rounded-full">
-            ₹{priceRange.min || "0"}
+          <div className="flex items-center gap-2">
+            <div className="bg-[#EEF0F2] text-gray-900 text-xs font-bold px-4 py-2 rounded-full">
+              ₹{priceRange.min || "0"}
+            </div>
+            {discount > 0 && (
+              <div className="bg-red-50 text-red-500 text-[10px] font-bold px-2 py-1 rounded-full">
+                {Math.round(discount)}% OFF
+              </div>
+            )}
           </div>
 
           <button 

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
@@ -20,7 +21,7 @@ const TABS = ["Details", "Shipping & Returns"];
 const PublicProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { fetchPublicProductById, fetchRelatedProducts, product, loading } = useProduct();
+  const { fetchPublicProductById, fetchPublicProductBySlug, fetchRelatedProducts, product, loading } = useProduct();
   const { addToCart, loading: cartLoading } = useCart();
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -31,7 +32,12 @@ const PublicProductDetail = () => {
   const [relatedLoading, setRelatedLoading] = useState(false);
 
   useEffect(() => {
-    fetchPublicProductById(id);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    if (isObjectId) {
+      fetchPublicProductById(id);
+    } else {
+      fetchPublicProductBySlug(id);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -124,6 +130,10 @@ const PublicProductDetail = () => {
   const priceRange = product.priceRange || { min: 0, max: 0 };
   const hasPriceRange = priceRange.min !== priceRange.max;
   const hasBadges = Object.values(product.badges || {}).some((v) => v === true);
+
+  const selectedVariantDiscount = selectedVariant?.discountPercentage || 0;
+  const maxDiscount = product.maxDiscount || 0;
+  const bestDeal = product.bestDeal;
 
   return (
     <div className="min-h-screen bg-[#FBF4E8]">
@@ -223,6 +233,11 @@ const PublicProductDetail = () => {
                     {product.subCategory}
                   </span>
                 )}
+                {product.brand && (
+                  <span className="inline-block bg-gray-100 text-gray-500 text-xs font-medium px-3 py-1 rounded-full">
+                    {product.brand}
+                  </span>
+                )}
               </div>
               <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mt-3 leading-tight">
                 {product.title}
@@ -232,20 +247,46 @@ const PublicProductDetail = () => {
 
             <div className="flex items-baseline gap-2">
               {hasPriceRange ? (
-                <>
+                <div>
                   <span className="text-3xl font-bold text-gray-900">₹{priceRange.min}</span>
                   <span className="text-gray-400 text-xl">–</span>
                   <span className="text-3xl font-bold text-gray-900">₹{priceRange.max}</span>
-                </>
+                </div>
               ) : (
                 <span className="text-3xl font-bold text-gray-900">₹{priceRange.min}</span>
               )}
               <span className="text-sm text-gray-400">INR</span>
             </div>
-            {selectedVariant && hasPriceRange && (
-              <p className="text-sm text-gray-500 -mt-4">
-                Selected: <span className="font-semibold text-gray-700">₹{selectedVariant.price.amount}</span>
-              </p>
+
+            {maxDiscount > 0 && (
+              <div className="mt-1">
+                <span className="inline-block text-sm bg-red-100 text-red-600 font-bold px-3 py-1 rounded-full">
+                  Up to {Math.round(maxDiscount)}% OFF 🔥
+                </span>
+                {bestDeal && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    Best deal: {bestDeal.color} - {Math.round(bestDeal.discountPercentage)}% OFF
+                  </span>
+                )}
+              </div>
+            )}
+
+            {selectedVariant && (
+              <div className="-mt-1">
+                <p className="text-sm text-gray-500">
+                  Selected: <span className="font-semibold text-gray-700">₹{selectedVariant.price.amount}</span>
+                </p>
+                {selectedVariant.mrp?.amount > selectedVariant.price?.amount && (
+                  <p className="text-xs text-gray-400 line-through">
+                    MRP: ₹{selectedVariant.mrp.amount}
+                  </p>
+                )}
+                {selectedVariantDiscount > 0 && (
+                  <span className="inline-block mt-1 text-xs bg-red-100 text-red-600 font-bold px-2 py-1 rounded-full">
+                    {Math.round(selectedVariantDiscount)}% OFF
+                  </span>
+                )}
+              </div>
             )}
 
             <hr className="border-gray-200" />
@@ -263,7 +304,7 @@ const PublicProductDetail = () => {
                         key={index}
                         onClick={() => handleVariantSelect(variant)}
                         title={variant.color}
-                        className={`w-9 h-9 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${
+                        className={`relative w-9 h-9 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${
                           isSelected ? "border-gray-900" : "border-transparent hover:border-gray-300"
                         }`}
                       >
@@ -380,7 +421,38 @@ const PublicProductDetail = () => {
 
             <div className="pt-5">
               {activeTab === "Details" && (
-                <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
+                <div className="space-y-4">
+                  <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
+                  {product.tags && product.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {product.tags.map((tag, index) => (
+                        <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {product.careInstructions && product.careInstructions.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Care Instructions</p>
+                      <ul className="text-sm text-gray-600 mt-1 list-disc list-inside">
+                        {product.careInstructions.map((instruction, index) => (
+                          <li key={index}>{instruction}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {product.countryOfOrigin && (
+                    <p className="text-sm text-gray-500">
+                      <span className="font-semibold">Origin:</span> {product.countryOfOrigin}
+                    </p>
+                  )}
+                  {product.weight?.value > 0 && (
+                    <p className="text-sm text-gray-500">
+                      <span className="font-semibold">Weight:</span> {product.weight.value} {product.weight.unit}
+                    </p>
+                  )}
+                </div>
               )}
               {activeTab === "Shipping & Returns" && (
                 <ul className="text-gray-600 text-sm leading-relaxed space-y-2">
@@ -416,10 +488,11 @@ const PublicProductDetail = () => {
                 const mainImage = relatedProduct.mainImage || relatedProduct.variants?.[0]?.images?.[0];
                 const priceRange = relatedProduct.priceRange || { min: 0, max: 0 };
                 const hasPriceRange = priceRange.min !== priceRange.max;
+                const maxDiscount = relatedProduct.maxDiscount || 0;
                 return (
                   <div
                     key={relatedProduct._id}
-                    onClick={() => navigate(`/products/${relatedProduct._id}`)}
+                    onClick={() => navigate(`/products/${relatedProduct.slug || relatedProduct._id}`)}
                     className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#F5C451] transition-all cursor-pointer group"
                   >
                     <div className="h-48 bg-gray-100 relative overflow-hidden">
@@ -434,11 +507,23 @@ const PublicProductDetail = () => {
                           No image
                         </div>
                       )}
+                      {maxDiscount > 0 && (
+                        <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {Math.round(maxDiscount)}% OFF
+                        </span>
+                      )}
                     </div>
                     <div className="p-3">
-                      <h3 className="text-sm font-semibold text-gray-800 truncate">
-                        {relatedProduct.title}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-800 truncate flex-1">
+                          {relatedProduct.title}
+                        </h3>
+                        {relatedProduct.brand && (
+                          <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            {relatedProduct.brand}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-500">{relatedProduct.category}</p>
                       <p className="text-sm font-bold text-gray-900 mt-1">
                         {hasPriceRange ? (

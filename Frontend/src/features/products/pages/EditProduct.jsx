@@ -22,25 +22,86 @@ const EditProduct = () => {
 
   const handleSubmit = async (formData) => {
     const jsonData = {};
+    
     for (const [key, value] of formData.entries()) {
+      // Skip images and altTexts (handled separately)
       if (key === "images" || key.startsWith("altTexts")) continue;
       
+      // Parse JSON fields
       if (key === "availableSizes") {
-        jsonData[key] = JSON.parse(value);
-      } else if (key === "colors") {
-        jsonData[key] = value ? JSON.parse(value) : [];
+        try {
+          jsonData[key] = JSON.parse(value);
+        } catch {
+          jsonData[key] = [];
+        }
       } else if (key === "occasion") {
-        jsonData[key] = value ? JSON.parse(value) : [];
-      } else if (key === "priceAmount") {
-        jsonData.price = { ...jsonData.price, amount: parseFloat(value) };
-      } else if (key === "priceCurrency") {
-        jsonData.price = { ...jsonData.price, currency: value };
+        try {
+          jsonData[key] = JSON.parse(value);
+        } catch {
+          jsonData[key] = [];
+        }
+      } else if (key === "tags") {
+        try {
+          jsonData[key] = JSON.parse(value);
+        } catch {
+          jsonData[key] = [];
+        }
+      } else if (key === "careInstructions") {
+        try {
+          jsonData[key] = JSON.parse(value);
+        } catch {
+          jsonData[key] = [];
+        }
+      } else if (key === "badges") {
+        try {
+          jsonData[key] = JSON.parse(value);
+        } catch {
+          jsonData[key] = {};
+        }
+      } else if (key === "originalPrice") {
+        jsonData.originalPrice = {
+          amount: parseFloat(value) || 0,
+          currency: "INR",
+        };
+      } else if (key === "sellingPrice") {
+        jsonData.sellingPrice = {
+          amount: parseFloat(value) || 0,
+          currency: "INR",
+        };
+      } else if (key === "weight") {
+        jsonData.weight = {
+          value: parseFloat(value) || 0,
+          unit: formData.get("weightUnit") || "kg",
+        };
+      } else if (key === "weightUnit") {
+        // Skip - handled in weight above
+        continue;
       } else if (key === "stock") {
-        jsonData[key] = parseFloat(value);
+        jsonData[key] = parseFloat(value) || 0;
+      } else if (key === "priceAmount") {
+        // Handle variant price separately
+        jsonData.price = { ...jsonData.price, amount: parseFloat(value) || 0 };
+      } else if (key === "priceCurrency") {
+        jsonData.price = { ...jsonData.price, currency: value || "INR" };
       } else if (key === "isActive") {
         jsonData[key] = value === "true";
+      } else if (key === "isFeatured") {
+        jsonData[key] = value === "true";
       } else {
-        jsonData[key] = value;
+        // Regular fields
+        if (value !== undefined && value !== null && value !== "") {
+          jsonData[key] = value;
+        }
+      }
+    }
+
+    // Handle variants separately
+    const variantsValue = formData.get("variants");
+    if (variantsValue) {
+      try {
+        jsonData.variants = JSON.parse(variantsValue);
+      } catch {
+        // Keep existing variants if parse fails
       }
     }
 

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
@@ -43,6 +44,8 @@ const PublicProducts = () => {
         if (product.category?.toLowerCase().includes(word)) return true;
         if (product.subCategory?.toLowerCase().includes(word)) return true;
         if (product.gender?.toLowerCase().includes(word)) return true;
+        if (product.brand?.toLowerCase().includes(word)) return true;
+        if (product.tags?.some((tag) => tag.toLowerCase().includes(word))) return true;
         if (product.variants?.some((v) => v.color?.toLowerCase().includes(word))) {
           return true;
         }
