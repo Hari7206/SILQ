@@ -261,6 +261,7 @@ export const updateProduct = async (req, res) => {
       isFeatured,
     } = req.body;
 
+    // Parse variants if needed
     let parsedVariants = variants;
     if (typeof variants === "string") {
       try {
@@ -276,7 +277,9 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    // Update variants if provided
     if (parsedVariants && parsedVariants.length > 0) {
+      // Validate each variant
       for (const variant of parsedVariants) {
         if (!variant.color || !variant.mrp?.amount || !variant.price?.amount || variant.stock === undefined) {
           return res.status(400).json({
@@ -289,6 +292,7 @@ export const updateProduct = async (req, res) => {
       product.mainImage = parsedVariants[0]?.images?.[0] || null;
     }
 
+    // Parse other JSON fields
     let parsedSizes = availableSizes;
     if (typeof availableSizes === "string") {
       try {
@@ -349,6 +353,7 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    // Update fields
     if (title) product.title = title;
     if (description) product.description = description;
     if (category) product.category = category;
@@ -362,8 +367,8 @@ export const updateProduct = async (req, res) => {
     if (seoTitle !== undefined) product.seoTitle = seoTitle;
     if (seoDescription !== undefined) product.seoDescription = seoDescription;
     if (fabric !== undefined) product.fabric = fabric;
-    if (parsedSizes.length > 0) product.availableSizes = parsedSizes;
-    if (parsedOccasion.length > 0) product.occasion = parsedOccasion;
+    if (parsedSizes && parsedSizes.length > 0) product.availableSizes = parsedSizes;
+    if (parsedOccasion && parsedOccasion.length > 0) product.occasion = parsedOccasion;
     if (parsedBadges) product.badges = parsedBadges;
     if (isActive !== undefined) product.isActive = isActive;
     if (isFeatured !== undefined) product.isFeatured = isFeatured;
@@ -379,11 +384,10 @@ export const updateProduct = async (req, res) => {
     console.error("Update product error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error while updating product",
+      message: error.message || "Server error while updating product",
     });
   }
 };
-
 export const addProductImages = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
