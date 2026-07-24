@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProduct } from "../hook/useProduct";
 import { useCart } from "../../cart/hook/useCart";
@@ -18,12 +17,32 @@ import {
 
 const TABS = ["Details", "Shipping & Returns"];
 
+// Helper functions for calculations
+const calculatePriceRange = (variants) => {
+  const prices = variants?.map(v => v.price?.amount).filter(Boolean) || [];
+  if (prices.length === 0) return { min: 0, max: 0 };
+  return {
+    min: Math.min(...prices),
+    max: Math.max(...prices)
+  };
+};
+
+const calculateMaxDiscount = (variants) => {
+  const discounts = variants?.map(v => {
+    if (v.mrp?.amount && v.price?.amount) {
+      return ((v.mrp.amount - v.price.amount) / v.mrp.amount) * 100;
+    }
+    return 0;
+  }).filter(d => d > 0) || [];
+  return discounts.length > 0 ? Math.max(...discounts) : 0;
+};
+
 const PublicProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { fetchPublicProductById, fetchPublicProductBySlug, fetchRelatedProducts, product, loading } = useProduct();
   const { addToCart, loading: cartLoading } = useCart();
-  
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -31,15 +50,36 @@ const PublicProductDetail = () => {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
 
+  const productFetchedRef = useRef(false);
+  const currentProductIdRef = useRef(null);
+  // Tracks which product's related items are currently loaded/loading.
+  // Using the actual id (instead of a boolean) prevents a stale async
+  // response from a previous product overwriting the current one.
+  const lastRelatedIdRef = useRef(null);
+
+  // Scroll to top on navigation + reset the "have we fetched this product" flag
   useEffect(() => {
+    if (currentProductIdRef.current !== id) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+    currentProductIdRef.current = id;
+    productFetchedRef.current = false;
+  }, [id]);
+
+  // Fetch product
+  useEffect(() => {
+    if (productFetchedRef.current) return;
+
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
     if (isObjectId) {
       fetchPublicProductById(id);
     } else {
       fetchPublicProductBySlug(id);
     }
-  }, [id]);
+    productFetchedRef.current = true;
+  }, [id, fetchPublicProductById, fetchPublicProductBySlug]);
 
+  // Set selected variant
   useEffect(() => {
     if (product?.variants?.length > 0) {
       setSelectedVariant(product.variants[0]);
@@ -47,16 +87,47 @@ const PublicProductDetail = () => {
     }
   }, [product]);
 
+  // Load related products — single, race-safe effect.
+  // Backend already filters by same category and ranks by
+  // subCategory > gender > brand > color match, so we just display it as-is.
   useEffect(() => {
     const loadRelated = async () => {
       if (!product?._id) return;
+
+      // Already loaded (or currently loading) for this exact product — skip.
+      if (lastRelatedIdRef.current === product._id) return;
+
+      lastRelatedIdRef.current = product._id; // claim this id immediately
+      setRelatedProducts([]);
       setRelatedLoading(true);
-      const products = await fetchRelatedProducts(product._id, 8);
-      setRelatedProducts(products);
-      setRelatedLoading(false);
+
+      try {
+        const products = await fetchRelatedProducts(product._id, 8);
+
+        // If the user navigated again while this was in flight,
+        // lastRelatedIdRef will have moved on — ignore this stale result.
+        if (lastRelatedIdRef.current !== product._id) return;
+
+        setRelatedProducts(products);
+      } catch (error) {
+        console.error("Failed to load related products:", error);
+      } finally {
+        if (lastRelatedIdRef.current === product._id) {
+          setRelatedLoading(false);
+        }
+      }
     };
+
     loadRelated();
-  }, [product?._id]);
+  }, [product?._id, fetchRelatedProducts]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      productFetchedRef.current = false;
+      lastRelatedIdRef.current = null;
+    };
+  }, []);
 
   const nextImage = () => {
     if (selectedVariant?.images?.length) {
@@ -101,6 +172,13 @@ const PublicProductDetail = () => {
     }
   };
 
+  const handleProductClick = (productId, slug) => {
+    productFetchedRef.current = false;
+    lastRelatedIdRef.current = null;
+    setRelatedProducts([]);
+    navigate(`/products/${slug || productId}`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FBF4E8] flex items-center justify-center">
@@ -127,13 +205,27 @@ const PublicProductDetail = () => {
 
   const images = selectedVariant?.images || [];
   const currentImage = images[currentImageIndex] || product.mainImage || images[0];
-  const priceRange = product.priceRange || { min: 0, max: 0 };
+
+  const priceRange = product.priceRange || calculatePriceRange(product.variants);
   const hasPriceRange = priceRange.min !== priceRange.max;
   const hasBadges = Object.values(product.badges || {}).some((v) => v === true);
 
   const selectedVariantDiscount = selectedVariant?.discountPercentage || 0;
-  const maxDiscount = product.maxDiscount || 0;
-  const bestDeal = product.bestDeal;
+  const maxDiscount = product.maxDiscount || calculateMaxDiscount(product.variants);
+  const bestDeal = product.bestDeal || (() => {
+    let best = null;
+    let maxDisc = 0;
+    product.variants?.forEach(v => {
+      if (v.mrp?.amount && v.price?.amount) {
+        const disc = ((v.mrp.amount - v.price.amount) / v.mrp.amount) * 100;
+        if (disc > maxDisc) {
+          maxDisc = disc;
+          best = { color: v.color, discountPercentage: disc };
+        }
+      }
+    });
+    return best;
+  })();
 
   return (
     <div className="min-h-screen bg-[#FBF4E8]">
@@ -153,11 +245,10 @@ const PublicProductDetail = () => {
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
-                  className={`w-[72px] h-[72px] rounded-xl overflow-hidden border-2 transition flex-shrink-0 bg-white ${
-                    currentImageIndex === index
+                  className={`w-[72px] h-[72px] rounded-xl overflow-hidden border-2 transition flex-shrink-0 bg-white ${currentImageIndex === index
                       ? "border-gray-900"
                       : "border-gray-200 hover:border-gray-400"
-                  }`}
+                    }`}
                 >
                   <img
                     src={img}
@@ -211,9 +302,8 @@ const PublicProductDetail = () => {
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 ${
-                      currentImageIndex === index ? "border-gray-900" : "border-transparent"
-                    }`}
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 ${currentImageIndex === index ? "border-gray-900" : "border-transparent"
+                      }`}
                   >
                     <img src={img} alt={`${product.title} ${index + 1}`} className="w-full h-full object-cover" />
                   </button>
@@ -248,12 +338,12 @@ const PublicProductDetail = () => {
             <div className="flex items-baseline gap-2">
               {hasPriceRange ? (
                 <div>
-                  <span className="text-3xl font-bold text-gray-900">₹{priceRange.min}</span>
+                  <span className="text-3xl font-bold text-gray-900">₹{Math.round(priceRange.min)}</span>
                   <span className="text-gray-400 text-xl">–</span>
-                  <span className="text-3xl font-bold text-gray-900">₹{priceRange.max}</span>
+                  <span className="text-3xl font-bold text-gray-900">₹{Math.round(priceRange.max)}</span>
                 </div>
               ) : (
-                <span className="text-3xl font-bold text-gray-900">₹{priceRange.min}</span>
+                <span className="text-3xl font-bold text-gray-900">₹{Math.round(priceRange.min)}</span>
               )}
               <span className="text-sm text-gray-400">INR</span>
             </div>
@@ -274,7 +364,7 @@ const PublicProductDetail = () => {
             {selectedVariant && (
               <div className="-mt-1">
                 <p className="text-sm text-gray-500">
-                  Selected: <span className="font-semibold text-gray-700">₹{selectedVariant.price.amount}</span>
+                  Selected: <span className="font-semibold text-gray-700">₹{selectedVariant.price?.amount || 0}</span>
                 </p>
                 {selectedVariant.mrp?.amount > selectedVariant.price?.amount && (
                   <p className="text-xs text-gray-400 line-through">
@@ -304,9 +394,8 @@ const PublicProductDetail = () => {
                         key={index}
                         onClick={() => handleVariantSelect(variant)}
                         title={variant.color}
-                        className={`relative w-9 h-9 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${
-                          isSelected ? "border-gray-900" : "border-transparent hover:border-gray-300"
-                        }`}
+                        className={`relative w-9 h-9 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${isSelected ? "border-gray-900" : "border-transparent hover:border-gray-300"
+                          }`}
                       >
                         <span
                           className="w-7 h-7 rounded-full border border-gray-200"
@@ -332,11 +421,10 @@ const PublicProductDetail = () => {
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition ${
-                        selectedSize === size
+                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition ${selectedSize === size
                           ? "border-gray-900 bg-gray-900 text-white"
                           : "border-gray-300 text-gray-700 bg-white hover:border-gray-900"
-                      }`}
+                        }`}
                     >
                       {size}
                     </button>
@@ -347,9 +435,8 @@ const PublicProductDetail = () => {
 
             <div className="flex items-center gap-2">
               <span
-                className={`text-sm font-medium ${
-                  selectedVariant?.stock > 0 ? "text-green-600" : "text-red-500"
-                }`}
+                className={`text-sm font-medium ${selectedVariant?.stock > 0 ? "text-green-600" : "text-red-500"
+                  }`}
               >
                 {selectedVariant?.stock > 0 ? `In Stock (${selectedVariant.stock})` : "Out of Stock"}
               </span>
@@ -408,11 +495,10 @@ const PublicProductDetail = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-3 text-sm font-medium transition border-b-2 -mb-px ${
-                    activeTab === tab
+                  className={`pb-3 text-sm font-medium transition border-b-2 -mb-px ${activeTab === tab
                       ? "border-gray-900 text-gray-900"
                       : "border-transparent text-gray-400 hover:text-gray-600"
-                  }`}
+                    }`}
                 >
                   {tab}
                 </button>
@@ -427,7 +513,7 @@ const PublicProductDetail = () => {
                     <div className="flex flex-wrap gap-2">
                       {product.tags.map((tag, index) => (
                         <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                          #{tag}
+                          {tag}
                         </span>
                       ))}
                     </div>
@@ -472,27 +558,36 @@ const PublicProductDetail = () => {
           )}
         </div>
 
-        {!relatedLoading && relatedProducts.length > 0 && (
-          <div className="mt-16">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">You May Also Like</h2>
+        {/* RELATED PRODUCTS SECTION */}
+        <div className="mt-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900">You May Also Like</h2>
+            {relatedProducts.length > 0 && (
               <button
                 onClick={() => navigate("/")}
                 className="text-sm text-[#F5C451] hover:underline"
               >
                 View All
               </button>
+            )}
+          </div>
+
+          {relatedLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="w-8 h-8 border-4 border-[#F5C451] border-t-transparent rounded-full animate-spin"></div>
             </div>
+          ) : relatedProducts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {relatedProducts.map((relatedProduct) => {
                 const mainImage = relatedProduct.mainImage || relatedProduct.variants?.[0]?.images?.[0];
-                const priceRange = relatedProduct.priceRange || { min: 0, max: 0 };
-                const hasPriceRange = priceRange.min !== priceRange.max;
-                const maxDiscount = relatedProduct.maxDiscount || 0;
+                const relatedPriceRange = relatedProduct.priceRange || calculatePriceRange(relatedProduct.variants);
+                const hasRelatedPriceRange = relatedPriceRange.min !== relatedPriceRange.max;
+                const relatedMaxDiscount = relatedProduct.maxDiscount || calculateMaxDiscount(relatedProduct.variants);
+
                 return (
                   <div
                     key={relatedProduct._id}
-                    onClick={() => navigate(`/products/${relatedProduct.slug || relatedProduct._id}`)}
+                    onClick={() => handleProductClick(relatedProduct._id, relatedProduct.slug)}
                     className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#F5C451] transition-all cursor-pointer group"
                   >
                     <div className="h-48 bg-gray-100 relative overflow-hidden">
@@ -507,9 +602,14 @@ const PublicProductDetail = () => {
                           No image
                         </div>
                       )}
-                      {maxDiscount > 0 && (
+                      {relatedMaxDiscount > 0 && (
                         <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          {Math.round(maxDiscount)}% OFF
+                          {Math.round(relatedMaxDiscount)}% OFF
+                        </span>
+                      )}
+                      {relatedProduct.gender && (
+                        <span className="absolute top-2 right-2 bg-black/60 text-white text-[8px] px-2 py-0.5 rounded-full">
+                          {relatedProduct.gender}
                         </span>
                       )}
                     </div>
@@ -526,12 +626,12 @@ const PublicProductDetail = () => {
                       </div>
                       <p className="text-xs text-gray-500">{relatedProduct.category}</p>
                       <p className="text-sm font-bold text-gray-900 mt-1">
-                        {hasPriceRange ? (
+                        {hasRelatedPriceRange ? (
                           <>
-                            ₹{priceRange.min} - ₹{priceRange.max}
+                            ₹{Math.round(relatedPriceRange.min)} - ₹{Math.round(relatedPriceRange.max)}
                           </>
                         ) : (
-                          `₹${priceRange.min}`
+                          `₹${Math.round(relatedPriceRange.min)}`
                         )}
                       </p>
                       {relatedProduct.variants?.length > 1 && (
@@ -553,8 +653,12 @@ const PublicProductDetail = () => {
                 );
               })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No related products found
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

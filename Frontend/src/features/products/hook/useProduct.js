@@ -1,4 +1,6 @@
+// hooks/useProduct.js
 import { useDispatch, useSelector } from "react-redux";
+import { useCallback, useRef } from "react";
 import {
   setLoading,
   setError,
@@ -21,7 +23,7 @@ import {
   getPublicProducts as getPublicProductsAPI,
   getPublicProductById as getPublicProductByIdAPI,
   getRelatedProducts as getRelatedProductsAPI,
-    getPublicProductBySlug as getPublicProductBySlugAPI,
+  getPublicProductBySlug as getPublicProductBySlugAPI,
 } from "../service/product.api";
 
 export const useProduct = () => {
@@ -30,20 +32,53 @@ export const useProduct = () => {
     (state) => state.products
   );
 
-    const fetchPublicProductBySlug = async (slug) => {
+  // ✅ Cache for related products
+  const relatedCacheRef = useRef(new Map());
+  const fetchingRef = useRef(false);
+
+  const fetchPublicProductBySlug = useCallback(async (slug) => {
+    if (fetchingRef.current) {
+      return;
+    }
+    
+    fetchingRef.current = true;
     try {
       dispatch(setLoading(true));
       const data = await getPublicProductBySlugAPI(slug);
       dispatch(setProduct(data.product));
       dispatch(setLoading(false));
+      fetchingRef.current = false;
       return data;
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to fetch product"));
       dispatch(setLoading(false));
+      fetchingRef.current = false;
       throw error;
     }
-  };
-  const fetchPublicProducts = async () => {
+  }, [dispatch]);
+
+  const fetchPublicProductById = useCallback(async (id) => {
+    if (fetchingRef.current) {
+      return;
+    }
+    
+    fetchingRef.current = true;
+    try {
+      dispatch(setLoading(true));
+      const data = await getPublicProductByIdAPI(id);
+      dispatch(setProduct(data.product));
+      dispatch(setLoading(false));
+      fetchingRef.current = false;
+      return data;
+    } catch (error) {
+      dispatch(setError(error.response?.data?.message || "Failed to fetch product"));
+      dispatch(setLoading(false));
+      fetchingRef.current = false;
+      throw error;
+    }
+  }, [dispatch]);
+
+  const fetchPublicProducts = useCallback(async () => {
     try {
       dispatch(setLoading(true));
       const data = await getPublicProductsAPI();
@@ -55,23 +90,9 @@ export const useProduct = () => {
       dispatch(setLoading(false));
       throw error;
     }
-  };
+  }, [dispatch]);
 
-  const fetchPublicProductById = async (id) => {
-    try {
-      dispatch(setLoading(true));
-      const data = await getPublicProductByIdAPI(id);
-      dispatch(setProduct(data.product));
-      dispatch(setLoading(false));
-      return data;
-    } catch (error) {
-      dispatch(setError(error.response?.data?.message || "Failed to fetch product"));
-      dispatch(setLoading(false));
-      throw error;
-    }
-  };
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       dispatch(setLoading(true));
       const data = await getProductsAPI();
@@ -83,9 +104,9 @@ export const useProduct = () => {
       dispatch(setLoading(false));
       throw error;
     }
-  };
+  }, [dispatch]);
 
-  const fetchProductById = async (id) => {
+  const fetchProductById = useCallback(async (id) => {
     try {
       dispatch(setLoading(true));
       const data = await getProductByIdAPI(id);
@@ -97,61 +118,86 @@ export const useProduct = () => {
       dispatch(setLoading(false));
       throw error;
     }
-  };
+  }, [dispatch]);
 
-  const fetchRelatedProducts = async (id, limit = 8) => {
+  // ✅ UPDATED: fetchRelatedProducts with cache
+  const fetchRelatedProducts = useCallback(async (id, limit = 8) => {
     try {
+      // Check cache first
+      const cacheKey = `${id}-${limit}`;
+      if (relatedCacheRef.current.has(cacheKey)) {
+        console.log("📦 Using cached related products for:", id);
+        return relatedCacheRef.current.get(cacheKey);
+      }
+      
+      console.log("🔄 Fetching related products for:", id);
       const data = await getRelatedProductsAPI(id, limit);
-      return data.products || [];
+      const products = data.products || [];
+      
+      // Store in cache
+      relatedCacheRef.current.set(cacheKey, products);
+      
+      return products;
     } catch (error) {
       console.error("Failed to fetch related products:", error);
       return [];
     }
-  };
+  }, []);
 
-  const createNewProduct = async (formData) => {
+  // ✅ Clear cache when needed
+  const clearRelatedCache = useCallback(() => {
+    relatedCacheRef.current.clear();
+  }, []);
+
+  const createNewProduct = useCallback(async (formData) => {
     try {
       dispatch(setLoading(true));
       const data = await createProductAPI(formData);
       dispatch(addProduct(data.product));
       dispatch(setLoading(false));
+      // Clear cache when new product is created
+      relatedCacheRef.current.clear();
       return data;
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to create product"));
       dispatch(setLoading(false));
       throw error;
     }
-  };
+  }, [dispatch]);
 
-  const updateExistingProduct = async (id, formData) => {
+  const updateExistingProduct = useCallback(async (id, formData) => {
     try {
       dispatch(setLoading(true));
       const data = await updateProductAPI(id, formData);
       dispatch(updateProduct(data.product));
       dispatch(setLoading(false));
+      // Clear cache when product is updated
+      relatedCacheRef.current.clear();
       return data;
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to update product"));
       dispatch(setLoading(false));
       throw error;
     }
-  };
+  }, [dispatch]);
 
-  const deleteExistingProduct = async (id) => {
+  const deleteExistingProduct = useCallback(async (id) => {
     try {
       dispatch(setLoading(true));
       await deleteProductAPI(id);
       dispatch(removeProduct(id));
       dispatch(setLoading(false));
+      // Clear cache when product is deleted
+      relatedCacheRef.current.clear();
       return { success: true };
     } catch (error) {
       dispatch(setError(error.response?.data?.message || "Failed to delete product"));
       dispatch(setLoading(false));
       throw error;
     }
-  };
+  }, [dispatch]);
 
-  const addMoreImages = async (id, formData) => {
+  const addMoreImages = useCallback(async (id, formData) => {
     try {
       dispatch(setLoading(true));
       const data = await addProductImagesAPI(id, formData);
@@ -163,9 +209,9 @@ export const useProduct = () => {
       dispatch(setLoading(false));
       throw error;
     }
-  };
+  }, [dispatch]);
 
-  const removeImage = async (id, imageUrl) => {
+  const removeImage = useCallback(async (id, imageUrl) => {
     try {
       dispatch(setLoading(true));
       const data = await removeProductImageAPI(id, imageUrl);
@@ -177,17 +223,19 @@ export const useProduct = () => {
       dispatch(setLoading(false));
       throw error;
     }
-  };
+  }, [dispatch]);
 
-  const clearProductSuccess = () => {
+  const clearProductSuccess = useCallback(() => {
     dispatch(clearSuccess());
-  };
+  }, [dispatch]);
 
-  const resetProductState = () => {
+  const resetProductState = useCallback(() => {
     dispatch(resetProduct());
-  };
+    // Clear cache when resetting
+    relatedCacheRef.current.clear();
+  }, [dispatch]);
 
-  const clearProductError = () => {};
+  const clearProductError = useCallback(() => {}, []);
 
   return {
     products,
@@ -197,10 +245,11 @@ export const useProduct = () => {
     success,
     fetchPublicProducts,
     fetchPublicProductById,
-     fetchPublicProductBySlug,
+    fetchPublicProductBySlug,
     fetchProducts,
     fetchProductById,
     fetchRelatedProducts,
+    clearRelatedCache,
     createNewProduct,
     updateExistingProduct,
     deleteExistingProduct,

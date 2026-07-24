@@ -695,8 +695,9 @@ export const getRelatedProducts = async (req, res) => {
   try {
     const { id } = req.params;
     const { limit = 8 } = req.query;
+    const limitNum = parseInt(limit);
 
-    const currentProduct = await productModel.findById(id);
+    const currentProduct = await productModel.findById(id).lean();
     if (!currentProduct) {
       return res.status(404).json({
         success: false,
@@ -704,36 +705,104 @@ export const getRelatedProducts = async (req, res) => {
       });
     }
 
-    const relatedProducts = await productModel
+    // Only hard requirement: same category, active, not the same product.
+    // Everything else (subCategory, gender, brand, color) is a *ranking* signal, not a filter.
+    const products = await productModel
       .find({
         _id: { $ne: id },
         isActive: true,
-        $or: [
-          { category: currentProduct.category },
-          { gender: currentProduct.gender },
-          { subCategory: currentProduct.subCategory },
-          { brand: currentProduct.brand },
-        ],
+        category: currentProduct.category,
       })
       .select("-__v")
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .populate("seller", "fullname email");
+      .populate("seller", "fullname email")
+      .lean();
 
-    const productsWithVirtuals = relatedProducts.map((p) => ({
-      ...p.toObject(),
-      priceRange: p.priceRange,
-      totalStock: p.totalStock,
-      maxDiscount: p.maxDiscount,
-      bestDeal: p.bestDeal,
-    }));
+    const safeArray = (value) => (Array.isArray(value) ? value : []);
+
+    const currentColors = safeArray(currentProduct.variants)
+      .map((v) => v.color?.toLowerCase())
+      .filter(Boolean);
+
+    const scoredProducts = products.map((product) => {
+      let score = 0;
+      const matchReasons = [];
+
+      // subCategory is the real "type" match (pajama vs shirt) — weight it highest
+      if (
+        currentProduct.subCategory &&
+        product.subCategory === currentProduct.subCategory
+      ) {
+        score += 100;
+        matchReasons.push("subCategory");
+      }
+
+      if (product.gender === currentProduct.gender) {
+        score += 20;
+        matchReasons.push("gender");
+      }
+
+      if (product.brand && product.brand === currentProduct.brand) {
+        score += 10;
+        matchReasons.push("brand");
+      }
+
+      const productColors = safeArray(product.variants)
+        .map((v) => v.color?.toLowerCase())
+        .filter(Boolean);
+      const matchingColors = currentColors.filter((c) =>
+        productColors.includes(c)
+      );
+      if (matchingColors.length > 0) {
+        score += Math.min(matchingColors.length * 5, 10);
+        matchReasons.push(`color:${matchingColors.join(",")}`);
+      }
+
+      const prices = safeArray(product.variants)
+        .map((v) => v.price?.amount)
+        .filter(Boolean);
+      const priceRange =
+        prices.length > 0
+          ? { min: Math.min(...prices), max: Math.max(...prices) }
+          : { min: 0, max: 0 };
+
+      let bestDeal = null;
+      let bestDiscount = 0;
+      safeArray(product.variants).forEach((v) => {
+        if (v.mrp?.amount && v.price?.amount) {
+          const discount = ((v.mrp.amount - v.price.amount) / v.mrp.amount) * 100;
+          if (discount > bestDiscount) {
+            bestDiscount = discount;
+            bestDeal = { color: v.color, discountPercentage: discount };
+          }
+        }
+      });
+
+      return {
+        ...product,
+        score,
+        matchReasons,
+        relevance: score,
+        priceRange,
+        totalStock: safeArray(product.variants).reduce(
+          (sum, v) => sum + (v.stock || 0),
+          0
+        ),
+        maxDiscount: bestDiscount,
+        bestDeal,
+      };
+    });
+
+    // Highest score (best subCategory/gender/brand/color match) first.
+    // If not enough subCategory matches exist, lower-scored same-category items fill the rest naturally.
+    const relatedProducts = scoredProducts
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limitNum);
 
     res.status(200).json({
       success: true,
-      count: productsWithVirtuals.length,
-      products: productsWithVirtuals,
+      count: relatedProducts.length,
+      products: relatedProducts,
     });
-
   } catch (error) {
     console.error("Get related products error:", error);
     res.status(500).json({
@@ -742,7 +811,6 @@ export const getRelatedProducts = async (req, res) => {
     });
   }
 };
-
 export const getPublicProductBySlug = async (req, res) => {
   try {
     const { slug } = req.params;

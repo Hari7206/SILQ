@@ -1,6 +1,68 @@
-
 import { useState, useRef, useEffect } from "react";
-import { Plus, X, ChevronDown, ChevronUp, Image as ImageIcon, Upload } from "lucide-react";
+import { Plus, X, ChevronDown, ChevronUp, Image as ImageIcon, Upload, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// One draggable image thumbnail. Each item needs a stable, unique `id` for
+// dnd-kit — we use `${variantIndex}-img-${originalIndex}` composed outside.
+const SortableImage = ({ id, src, alt, onRemove }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : "auto",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group touch-none">
+      <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 relative">
+        {src ? (
+          <img src={src} alt={alt} className="w-full h-full object-cover pointer-events-none" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <ImageIcon size={20} />
+          </div>
+        )}
+        {/* Drag handle */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute bottom-0 left-0 right-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition cursor-grab active:cursor-grabbing py-0.5"
+        >
+          <GripVertical size={12} className="text-white" />
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition shadow-md"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  );
+};
 
 const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
   const defaultFormData = {
@@ -45,7 +107,7 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
 
   const populateFormData = (data) => {
     if (!data) return defaultFormData;
-    
+
     return {
       title: data.title || "",
       description: data.description || "",
@@ -98,6 +160,35 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
 
   const fileInputRefs = useRef({});
 
+  // Give every image a stable id that survives reordering, keyed by
+  // variantIndex -> array of ids (parallel to variant.images).
+  const [variantImageIds, setVariantImageIds] = useState({});
+  const idCounter = useRef(0);
+  const nextId = () => `img-${Date.now()}-${idCounter.current++}`;
+
+  const ensureImageIds = (variantIndex, count) => {
+    setVariantImageIds((prev) => {
+      const existing = prev[variantIndex] || [];
+      if (existing.length === count) return prev;
+      if (existing.length < count) {
+        const added = Array.from({ length: count - existing.length }, () => nextId());
+        return { ...prev, [variantIndex]: [...existing, ...added] };
+      }
+      return { ...prev, [variantIndex]: existing.slice(0, count) };
+    });
+  };
+
+  useEffect(() => {
+    formData.variants.forEach((v, i) => ensureImageIds(i, v.images.length));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.variants.map((v) => v.images.length).join(",")]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    })
+  );
+
   useEffect(() => {
     if (initialData) {
       const newData = populateFormData(initialData);
@@ -130,6 +221,23 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
   const currencyOptions = ["INR", "USD", "EUR", "GBP"];
   const weightUnitOptions = ["kg", "g", "lb", "oz"];
 
+  // Parses tag/occasion/care-instruction input.
+  // Handles plain "a, b, c", semicolon-separated "a; b; c",
+  // and pasted array-literal syntax like ["a", "b", "c"].
+  const parseListInput = (raw) => {
+    if (!raw) return [];
+    let str = raw.trim();
+
+    if (str.startsWith("[") && str.endsWith("]")) {
+      str = str.slice(1, -1);
+    }
+
+    return str
+      .split(/[,;]/)
+      .map((s) => s.trim().replace(/^["']+|["']+$/g, "").trim())
+      .filter(Boolean);
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -160,31 +268,31 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
   const handleVariantChange = (index, field, value) => {
     const newVariants = [...formData.variants];
     const variantCopy = { ...newVariants[index] };
-    
+
     if (field === "mrpAmount") {
-      variantCopy.mrp = { 
-        ...variantCopy.mrp, 
-        amount: value 
+      variantCopy.mrp = {
+        ...variantCopy.mrp,
+        amount: value
       };
     } else if (field === "mrpCurrency") {
-      variantCopy.mrp = { 
-        ...variantCopy.mrp, 
-        currency: value 
+      variantCopy.mrp = {
+        ...variantCopy.mrp,
+        currency: value
       };
     } else if (field === "priceAmount") {
-      variantCopy.price = { 
-        ...variantCopy.price, 
-        amount: value 
+      variantCopy.price = {
+        ...variantCopy.price,
+        amount: value
       };
     } else if (field === "priceCurrency") {
-      variantCopy.price = { 
-        ...variantCopy.price, 
-        currency: value 
+      variantCopy.price = {
+        ...variantCopy.price,
+        currency: value
       };
     } else {
       variantCopy[field] = value;
     }
-    
+
     newVariants[index] = variantCopy;
     setFormData((prev) => ({ ...prev, variants: newVariants }));
   };
@@ -221,9 +329,45 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     }
   };
 
+  // Reorders images (and their previews + ids) for a variant given old/new index.
+  const reorderVariantImages = (variantIndex, oldIndex, newIndex) => {
+    if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
+
+    setFormData((prev) => {
+      const newVariants = [...prev.variants];
+      const variantCopy = { ...newVariants[variantIndex] };
+      variantCopy.images = arrayMove(variantCopy.images, oldIndex, newIndex);
+      newVariants[variantIndex] = variantCopy;
+      return { ...prev, variants: newVariants };
+    });
+
+    setVariantImagePreviews((prev) => {
+      const previews = prev[variantIndex] || [];
+      return { ...prev, [variantIndex]: arrayMove(previews, oldIndex, newIndex) };
+    });
+
+    setVariantImageIds((prev) => {
+      const ids = prev[variantIndex] || [];
+      return { ...prev, [variantIndex]: arrayMove(ids, oldIndex, newIndex) };
+    });
+  };
+
+  // dnd-kit drag end handler for a given variant's image list.
+  const handleImageDragEnd = (variantIndex) => (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const ids = variantImageIds[variantIndex] || [];
+    const oldIndex = ids.indexOf(active.id);
+    const newIndex = ids.indexOf(over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    reorderVariantImages(variantIndex, oldIndex, newIndex);
+  };
+
   const handleVariantImageUpload = async (index, files) => {
     const fileArray = Array.from(files).slice(0, 5 - formData.variants[index].images.length);
-    
+
     if (fileArray.length === 0) return;
 
     setUploadingImages((prev) => ({ ...prev, [index]: true }));
@@ -257,69 +401,75 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     const variantCopy = { ...newVariants[variantIndex] };
     variantCopy.images = variantCopy.images.filter((_, i) => i !== imageIndex);
     newVariants[variantIndex] = variantCopy;
-    
+
     setVariantImagePreviews((prev) => ({
       ...prev,
       [variantIndex]: prev[variantIndex]?.filter((_, i) => i !== imageIndex) || [],
     }));
-    
+
+    setVariantImageIds((prev) => ({
+      ...prev,
+      [variantIndex]: (prev[variantIndex] || []).filter((_, i) => i !== imageIndex),
+    }));
+
     setFormData((prev) => ({ ...prev, variants: newVariants }));
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // Validate variants
-  for (const variant of formData.variants) {
-    if (!variant.color || !variant.mrp?.amount || !variant.price?.amount || !variant.stock) {
-      alert("Each variant must have color, MRP, price, and stock");
-      return;
+    // Validate variants
+    for (const variant of formData.variants) {
+      if (!variant.color || !variant.mrp?.amount || !variant.price?.amount || !variant.stock) {
+        alert("Each variant must have color, MRP, price, and stock");
+        return;
+      }
     }
-  }
 
-  const formDataToSend = new FormData();
+    const formDataToSend = new FormData();
 
-  // Handle regular fields
-  Object.keys(formData).forEach((key) => {
-    if (key === "variants" || key === "badges" || key === "availableSizes") return;
-    if (key === "occasion" || key === "tags" || key === "careInstructions") {
-      const value = formData[key] ? JSON.stringify(formData[key].split(",").map((s) => s.trim()).filter(Boolean)) : JSON.stringify([]);
-      formDataToSend.append(key, value);
-    } else if (key === "weight") {
-      // FIX: Send weight as JSON string
-      formDataToSend.append("weight", JSON.stringify({ 
-        value: parseFloat(formData[key]) || 0, 
-        unit: formData.weightUnit || "kg" 
-      }));
-    } else if (key === "weightUnit") {
-      // Skip this - it's handled above
-      return;
-    } else {
-      formDataToSend.append(key, formData[key]);
-    }
-  });
+    // Handle regular fields
+    Object.keys(formData).forEach((key) => {
+      if (key === "variants" || key === "badges" || key === "availableSizes") return;
+      if (key === "occasion" || key === "tags" || key === "careInstructions") {
+        // Uses parseListInput so brackets/quotes/semicolons never leak into the array
+        const value = JSON.stringify(parseListInput(formData[key]));
+        formDataToSend.append(key, value);
+      } else if (key === "weight") {
+        // Send weight as JSON string
+        formDataToSend.append("weight", JSON.stringify({
+          value: parseFloat(formData[key]) || 0,
+          unit: formData.weightUnit || "kg"
+        }));
+      } else if (key === "weightUnit") {
+        // Skip this - it's handled above
+        return;
+      } else {
+        formDataToSend.append(key, formData[key]);
+      }
+    });
 
-  formDataToSend.append("availableSizes", JSON.stringify(formData.availableSizes));
-  formDataToSend.append("badges", JSON.stringify(formData.badges));
+    formDataToSend.append("availableSizes", JSON.stringify(formData.availableSizes));
+    formDataToSend.append("badges", JSON.stringify(formData.badges));
 
-  // Handle variants
-  const variantsToSend = formData.variants.map((v) => ({
-    ...v,
-    mrp: {
-      amount: parseFloat(v.mrp.amount),
-      currency: v.mrp.currency || "INR",
-    },
-    price: {
-      amount: parseFloat(v.price.amount),
-      currency: v.price.currency || "INR",
-    },
-    stock: parseInt(v.stock) || 0,
-    images: v.images || [],
-  }));
-  formDataToSend.append("variants", JSON.stringify(variantsToSend));
+    // Handle variants
+    const variantsToSend = formData.variants.map((v) => ({
+      ...v,
+      mrp: {
+        amount: parseFloat(v.mrp.amount),
+        currency: v.mrp.currency || "INR",
+      },
+      price: {
+        amount: parseFloat(v.price.amount),
+        currency: v.price.currency || "INR",
+      },
+      stock: parseInt(v.stock) || 0,
+      images: v.images || [],
+    }));
+    formDataToSend.append("variants", JSON.stringify(variantsToSend));
 
-  await onSubmit(formDataToSend);
-};
+    await onSubmit(formDataToSend);
+  };
 
   const inputClass =
     "w-full border border-gray-200 bg-gray-50/60 px-3.5 py-2.5 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#F5C451]/40 focus:border-[#F5C451] outline-none transition";
@@ -575,43 +725,42 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-gray-600">Images (max 5)</label>
+                  <label className="text-xs font-medium text-gray-600">Images (max 5) — drag to reorder</label>
                   <div className="mt-2">
                     {variant.images.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {variant.images.map((img, imgIndex) => (
-                          <div key={imgIndex} className="relative group">
-                            <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-                              {variantImagePreviews[index]?.[imgIndex] ? (
-                                <img
-                                  src={variantImagePreviews[index][imgIndex]}
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleImageDragEnd(index)}
+                      >
+                        <SortableContext
+                          items={variantImageIds[index] || []}
+                          strategy={horizontalListSortingStrategy}
+                        >
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {variant.images.map((img, imgIndex) => {
+                              const imgId = (variantImageIds[index] || [])[imgIndex];
+                              if (!imgId) return null;
+                              return (
+                                <SortableImage
+                                  key={imgId}
+                                  id={imgId}
+                                  src={variantImagePreviews[index]?.[imgIndex] || img}
                                   alt={`${variant.color} - ${imgIndex + 1}`}
-                                  className="w-full h-full object-cover"
+                                  onRemove={() => removeVariantImage(index, imgIndex)}
                                 />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                  <ImageIcon size={20} />
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeVariantImage(index, imgIndex)}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition shadow-md"
-                            >
-                              <X size={12} />
-                            </button>
+                              );
+                            })}
                           </div>
-                        ))}
-                      </div>
+                        </SortableContext>
+                      </DndContext>
                     )}
 
                     {variant.images.length < 5 && (
-                      <label className={`flex items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer transition ${
-                        uploadingImages[index] 
-                          ? "border-indigo-300 bg-indigo-50/40" 
+                      <label className={`flex items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer transition ${uploadingImages[index]
+                          ? "border-indigo-300 bg-indigo-50/40"
                           : "border-gray-200 hover:border-[#F5C451] hover:bg-[#FDF7E8]/40"
-                      }`}>
+                        }`}>
                         <div className="flex flex-col items-center gap-1">
                           {uploadingImages[index] ? (
                             <>
@@ -662,11 +811,10 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
                 key={size}
                 type="button"
                 onClick={() => handleSizeToggle(size)}
-                className={`w-11 h-9 rounded-lg text-sm font-medium border transition ${
-                  active
+                className={`w-11 h-9 rounded-lg text-sm font-medium border transition ${active
                     ? "bg-[#F5C451] border-[#F5C451] text-gray-900"
                     : "bg-gray-50/60 border-gray-200 text-gray-500 hover:border-gray-300"
-                }`}
+                  }`}
               >
                 {size}
               </button>
