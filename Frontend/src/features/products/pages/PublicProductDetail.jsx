@@ -17,7 +17,6 @@ import {
 
 const TABS = ["Details", "Shipping & Returns"];
 
-// Helper functions for calculations
 const calculatePriceRange = (variants) => {
   const prices = variants?.map(v => v.price?.amount).filter(Boolean) || [];
   if (prices.length === 0) return { min: 0, max: 0 };
@@ -52,12 +51,8 @@ const PublicProductDetail = () => {
 
   const productFetchedRef = useRef(false);
   const currentProductIdRef = useRef(null);
-  // Tracks which product's related items are currently loaded/loading.
-  // Using the actual id (instead of a boolean) prevents a stale async
-  // response from a previous product overwriting the current one.
   const lastRelatedIdRef = useRef(null);
 
-  // Scroll to top on navigation + reset the "have we fetched this product" flag
   useEffect(() => {
     if (currentProductIdRef.current !== id) {
       window.scrollTo({ top: 0, behavior: "auto" });
@@ -66,7 +61,6 @@ const PublicProductDetail = () => {
     productFetchedRef.current = false;
   }, [id]);
 
-  // Fetch product
   useEffect(() => {
     if (productFetchedRef.current) return;
 
@@ -79,7 +73,6 @@ const PublicProductDetail = () => {
     productFetchedRef.current = true;
   }, [id, fetchPublicProductById, fetchPublicProductBySlug]);
 
-  // Set selected variant
   useEffect(() => {
     if (product?.variants?.length > 0) {
       setSelectedVariant(product.variants[0]);
@@ -87,25 +80,19 @@ const PublicProductDetail = () => {
     }
   }, [product]);
 
-  // Load related products — single, race-safe effect.
-  // Backend already filters by same category and ranks by
-  // subCategory > gender > brand > color match, so we just display it as-is.
   useEffect(() => {
     const loadRelated = async () => {
       if (!product?._id) return;
 
-      // Already loaded (or currently loading) for this exact product — skip.
       if (lastRelatedIdRef.current === product._id) return;
 
-      lastRelatedIdRef.current = product._id; // claim this id immediately
+      lastRelatedIdRef.current = product._id;
       setRelatedProducts([]);
       setRelatedLoading(true);
 
       try {
         const products = await fetchRelatedProducts(product._id, 8);
 
-        // If the user navigated again while this was in flight,
-        // lastRelatedIdRef will have moved on — ignore this stale result.
         if (lastRelatedIdRef.current !== product._id) return;
 
         setRelatedProducts(products);
@@ -558,7 +545,6 @@ const PublicProductDetail = () => {
           )}
         </div>
 
-        {/* RELATED PRODUCTS SECTION */}
         <div className="mt-16">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold text-gray-900">You May Also Like</h2>

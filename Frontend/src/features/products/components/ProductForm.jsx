@@ -15,8 +15,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-// One draggable image thumbnail. Each item needs a stable, unique `id` for
-// dnd-kit — we use `${variantIndex}-img-${originalIndex}` composed outside.
 const SortableImage = ({ id, src, alt, onRemove }) => {
   const {
     attributes,
@@ -221,9 +219,6 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
   const currencyOptions = ["INR", "USD", "EUR", "GBP"];
   const weightUnitOptions = ["kg", "g", "lb", "oz"];
 
-  // Parses tag/occasion/care-instruction input.
-  // Handles plain "a, b, c", semicolon-separated "a; b; c",
-  // and pasted array-literal syntax like ["a", "b", "c"].
   const parseListInput = (raw) => {
     if (!raw) return [];
     let str = raw.trim();
@@ -329,7 +324,6 @@ const ProductForm = ({ initialData, onSubmit, loading, buttonText, error }) => {
     }
   };
 
-  // Reorders images (and their previews + ids) for a variant given old/new index.
   const reorderVariantImages = (variantIndex, oldIndex, newIndex) => {
     if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
 

@@ -5,7 +5,6 @@ const productApi = axios.create({
   withCredentials: true,
 });
 
-// ============ PUBLIC APIs ============
 
 export const getPublicProducts = async () => {
   const res = await productApi.get("/public");
@@ -27,7 +26,6 @@ export const getRelatedProducts = async (id, limit = 8) => {
   return res.data;
 };
 
-// ============ PROTECTED APIs (Seller only) ============
 
 export const getProducts = async () => {
   const res = await productApi.get("/");
