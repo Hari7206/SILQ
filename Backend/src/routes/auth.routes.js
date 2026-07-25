@@ -53,9 +53,6 @@ router.get(
   }
 );
 
-
-
-//  Forgot Password Routes
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
 router.get("/verify-reset-token/:token", verifyResetToken);
